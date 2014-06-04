@@ -1,0 +1,24 @@
+Function: plain write 4 Kb. Mean time: 2843.71 ms.
+Function: plain write 16 Kb. Mean time: 2560.98 ms.
+Function: plain write 64 Kb. Mean time: 2506.49 ms.
+Function: plain write 256 Kb. Mean time: 2487.95 ms.
+Function: plain write 1024 Kb. Mean time: 2472.96 ms.
+Function: plain write 4096 Kb. Mean time: 2615.23 ms.
+Function: plain write 16384 Kb. Mean time: 2717.52 ms.
+Function: plain write 65536 Kb. Mean time: 2732.63 ms.
+Function: preallocate write 4 Kb. Mean time: 2734.12 ms.
+Function: preallocate write 16 Kb. Mean time: 2540.97 ms.
+Function: preallocate write 64 Kb. Mean time: 2495.74 ms.
+Function: preallocate write 256 Kb. Mean time: 2490.31 ms.
+Function: preallocate write 1024 Kb. Mean time: 2501.21 ms.
+Function: preallocate write 4096 Kb. Mean time: 2621.28 ms.
+Function: preallocate write 16384 Kb. Mean time: 2722.39 ms.
+Function: preallocate write 65536 Kb. Mean time: 2738.1 ms.
+Function: preallocate truncate write 4 Kb. Mean time: 2734.95 ms.
+Function: preallocate truncate write 16 Kb. Mean time: 2534.85 ms.
+Function: preallocate truncate write 64 Kb. Mean time: 2486.37 ms.
+Function: preallocate truncate write 256 Kb. Mean time: 2475.12 ms.
+Function: preallocate truncate write 1024 Kb. Mean time: 2473.47 ms.
+Function: preallocate truncate write 4096 Kb. Mean time: 2625.96 ms.
+Function: preallocate truncate write 16384 Kb. Mean time: 2727.76 ms.
+Function: preallocate truncate write 65536 Kb. Mean time: 2735.94 ms.
