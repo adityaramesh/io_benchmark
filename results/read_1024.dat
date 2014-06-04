@@ -1,0 +1,30 @@
+Function: plain read 4 Kb. Mean time: 3357.04 ms.
+Function: plain read 16 Kb. Mean time: 3328.22 ms.
+Function: plain read 64 Kb. Mean time: 3314.17 ms.
+Function: plain read 256 Kb. Mean time: 3196.79 ms.
+Function: plain read 1024 Kb. Mean time: 2808.99 ms.
+Function: plain read 4096 Kb. Mean time: 2555.84 ms.
+Function: plain read 16384 Kb. Mean time: 2717.81 ms.
+Function: plain read 65536 Kb. Mean time: 2739.26 ms.
+Function: plain read 262144 Kb. Mean time: 2730.88 ms.
+Function: read readahead 4 Kb. Mean time: 3475.69 ms.
+Function: read readahead 16 Kb. Mean time: 3408.68 ms.
+Function: read readahead 64 Kb. Mean time: 3369.84 ms.
+Function: read readahead 256 Kb. Mean time: 3258.22 ms.
+Function: read readahead 1024 Kb. Mean time: 2855.45 ms.
+Function: read readahead 4096 Kb. Mean time: 2499.72 ms.
+Function: read readahead 16384 Kb. Mean time: 3137.96 ms.
+Function: read readahead 65536 Kb. Mean time: 2729.56 ms.
+Function: read readahead 262144 Kb. Mean time: 3065.27 ms.
+Function: read advise 4 Kb. Mean time: 3156.8 ms.
+Function: read advise 16 Kb. Mean time: 3235.08 ms.
+Function: read advise 64 Kb. Mean time: 2946.88 ms.
+Function: read advise 256 Kb. Mean time: 2918.89 ms.
+Function: read advise 1024 Kb. Mean time: 2802.4 ms.
+Function: read advise 4096 Kb. Mean time: 2755.76 ms.
+Function: read advise 16384 Kb. Mean time: 2874.21 ms.
+Function: read advise 65536 Kb. Mean time: 2924.97 ms.
+Function: read advise 262144 Kb. Mean time: 2891.48 ms.
+Function: read mmap. Mean time: 5992.65 ms.
+Function: read mmap. Mean time: 5995.03 ms.
+Function: read mmap. Mean time: 3036.69 ms.

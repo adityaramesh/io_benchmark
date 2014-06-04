@@ -1,0 +1,8 @@
+*.DS_Store
+*.out
+*.run
+*.swp
+*.vim
+*.dSYM
+*.gch
+data/*
