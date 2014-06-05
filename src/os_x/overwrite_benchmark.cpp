@@ -101,16 +101,21 @@ static void
 write_nocache(const char* path, const std::size_t buf_size, const std::size_t n)
 {
 	auto fd = get_fd(path, O_WRONLY | O_CREAT | O_TRUNC);
-	auto buf = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
+	auto buf = (uint8_t*)nullptr;
 	auto off = off_t{0};
+
+	auto r = ::posix_memalign((void**)&buf, 4096, buf_size);
+	if (r != 0) {
+		throw std::system_error{r, std::system_category()};
+	}
 
 	if (::fcntl(fd, F_NOCACHE, 1) == -1) {
 		throw std::system_error{errno, std::system_category()};
 	}
 
 	for (;;) {
-		fill_buffer(buf.get(), buf_size);
-		auto r = full_write(fd, buf.get(), buf_size, off);
+		fill_buffer(buf, buf_size);
+		auto r = full_write(fd, buf, buf_size, off);
 		if (r == -1) {
 			throw std::system_error{errno, std::system_category()};
 		}
@@ -120,6 +125,7 @@ write_nocache(const char* path, const std::size_t buf_size, const std::size_t n)
 		if (off >= n) { break; }
 	}
 	::close(fd);
+	std::free(buf);
 }
 
 static void
@@ -196,8 +202,13 @@ static void
 write_preallocate_truncate_nocache(const char* path, const std::size_t buf_size, const std::size_t n)
 {
 	auto fd = get_fd(path, O_WRONLY | O_CREAT | O_TRUNC);
-	auto buf = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
+	auto buf = (uint8_t*)nullptr;
 	auto off = off_t{0};
+
+	auto r = ::posix_memalign((void**)&buf, 4096, buf_size);
+	if (r != 0) {
+		throw std::system_error{r, std::system_category()};
+	}
 
 	if (::fcntl(fd, F_NOCACHE, 1) == -1) {
 		throw std::system_error{errno, std::system_category()};
@@ -220,8 +231,8 @@ write_preallocate_truncate_nocache(const char* path, const std::size_t buf_size,
 
 write:
 	for (;;) {
-		fill_buffer(buf.get(), buf_size);
-		auto r = full_write(fd, buf.get(), buf_size, off);
+		fill_buffer(buf, buf_size);
+		auto r = full_write(fd, buf, buf_size, off);
 		if (r == -1) {
 			throw std::system_error{errno, std::system_category()};
 		}
@@ -231,6 +242,7 @@ write:
 		if (off >= n) { break; }
 	}
 	::close(fd);
+	std::free(buf);
 }
 
 static void

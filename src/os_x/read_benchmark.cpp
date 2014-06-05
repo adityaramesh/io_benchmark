@@ -3,6 +3,10 @@
 ** Author:	Aditya Ramesh
 ** Date:	06/03/2014
 ** Contact:	_@adityaramesh.com
+**
+** - Best results:
+**   - 1 Gb or above: read + nocache + 16384 Kb
+**   - 512 Mb or below: read + advise + 256 Kb
 */
 
 #include <algorithm>
@@ -128,6 +132,9 @@ read_plain(const char* path, const std::size_t buf_size)
 			throw std::system_error{errno, std::system_category()};
 		}
 
+		if (r != buf_size) {
+			cc::println("r: $; buf_size: $", r, off, buf_size);
+		}
 		assert(r == buf_size);
 		off += buf_size;
 		count += std::count_if(buf.get(), buf.get() + buf_size,
@@ -141,16 +148,21 @@ static auto
 read_nocache(const char* path, const std::size_t buf_size)
 {
 	auto fd = get_fd(path, O_RDONLY);
-	auto buf = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
+	auto buf = (uint8_t*)nullptr;
 	auto off = off_t{0};
 	auto count = off_t{0};
+
+	auto r = ::posix_memalign((void**)&buf, 4096, buf_size);
+	if (r != 0) {
+		throw std::system_error{r, std::system_category()};
+	}
 
 	if (::fcntl(fd, F_NOCACHE, 1) == -1) {
 		throw std::system_error{errno, std::system_category()};
 	}
 
 	for (;;) {
-		auto r = full_read(fd, buf.get(), buf_size, off);
+		r = full_read(fd, buf, buf_size, off);
 		if (r == 0) {
 			break;
 		}
@@ -160,10 +172,11 @@ read_nocache(const char* path, const std::size_t buf_size)
 
 		assert(r == buf_size);
 		off += buf_size;
-		count += std::count_if(buf.get(), buf.get() + buf_size,
+		count += std::count_if(buf, buf + buf_size,
 			[](auto x) { return x == needle; });
 	}
 	::close(fd);
+	std::free(buf);
 	return count;
 }
 
@@ -243,11 +256,14 @@ mmap_plain(const char* path)
 }
 
 static auto
-mmap_readahead(const char* path)
+mmap_advise(const char* path)
 {
 	auto fd = get_fd(path, O_RDONLY);
 	auto fs = file_size(fd);
-	if (::fcntl(fd, F_RDAHEAD, 1) == -1) {
+	struct radvisory rd;
+	rd.ra_offset = 0;
+	rd.ra_count = fs;
+	if (::fcntl(fd, F_RDADVISE, &rd) == -1) {
 		throw std::system_error{errno, std::system_category()};
 	}
 
@@ -311,48 +327,48 @@ int main(int argc, char** argv)
 		return EXIT_FAILURE;
 	}
 
+	auto kb = 1024;
 	auto path = argv[1];
 	auto count = read_check(path);
 	purge_cache();
 
-	auto kb = 1024;
-	test_function(std::bind(&read_plain, path, 4 * kb), "plain read 4 Kb", count);
-	test_function(std::bind(&read_plain, path, 16 * kb), "plain read 16 Kb", count);
-	test_function(std::bind(&read_plain, path, 64 * kb), "plain read 64 Kb", count);
-	test_function(std::bind(&read_plain, path, 256 * kb), "plain read 256 Kb", count);
-	test_function(std::bind(&read_plain, path, 1024 * kb), "plain read 1024 Kb", count);
-	test_function(std::bind(&read_plain, path, 4096 * kb), "plain read 4096 Kb", count);
-	test_function(std::bind(&read_plain, path, 16384 * kb), "plain read 16384 Kb", count);
-	test_function(std::bind(&read_plain, path, 65536 * kb), "plain read 65536 Kb", count);
-	test_function(std::bind(&read_plain, path, 262144 * kb), "plain read 262144 Kb", count);
-	test_function(std::bind(&read_nocache, path, 4 * kb), "read nocache 4 Kb", count);
-	test_function(std::bind(&read_nocache, path, 16 * kb), "read nocache 16 Kb", count);
-	test_function(std::bind(&read_nocache, path, 64 * kb), "read nocache 64 Kb", count);
-	test_function(std::bind(&read_nocache, path, 256 * kb), "read nocache 256 Kb", count);
-	test_function(std::bind(&read_nocache, path, 1024 * kb), "read nocache 1024 Kb", count);
-	test_function(std::bind(&read_nocache, path, 4096 * kb), "read nocache 4096 Kb", count);
-	test_function(std::bind(&read_nocache, path, 16384 * kb), "read nocache 16384 Kb", count);
-	test_function(std::bind(&read_nocache, path, 65536 * kb), "read nocache 65536 Kb", count);
-	test_function(std::bind(&read_nocache, path, 262144 * kb), "read nocache 262144 Kb", count);
-	test_function(std::bind(&read_readahead, path, 4 * kb), "read readahead 4 Kb", count);
-	test_function(std::bind(&read_readahead, path, 16 * kb), "read readahead 16 Kb", count);
-	test_function(std::bind(&read_readahead, path, 64 * kb), "read readahead 64 Kb", count);
-	test_function(std::bind(&read_readahead, path, 256 * kb), "read readahead 256 Kb", count);
-	test_function(std::bind(&read_readahead, path, 1024 * kb), "read readahead 1024 Kb", count);
-	test_function(std::bind(&read_readahead, path, 4096 * kb), "read readahead 4096 Kb", count);
-	test_function(std::bind(&read_readahead, path, 16384 * kb), "read readahead 16384 Kb", count);
-	test_function(std::bind(&read_readahead, path, 65536 * kb), "read readahead 65536 Kb", count);
-	test_function(std::bind(&read_readahead, path, 262144 * kb), "read readahead 262144 Kb", count);
-	test_function(std::bind(&read_advise, path, 4 * kb), "read advise 4 Kb", count);
-	test_function(std::bind(&read_advise, path, 16 * kb), "read advise 16 Kb", count);
-	test_function(std::bind(&read_advise, path, 64 * kb), "read advise 64 Kb", count);
-	test_function(std::bind(&read_advise, path, 256 * kb), "read advise 256 Kb", count);
-	test_function(std::bind(&read_advise, path, 1024 * kb), "read advise 1024 Kb", count);
-	test_function(std::bind(&read_advise, path, 4096 * kb), "read advise 4096 Kb", count);
-	test_function(std::bind(&read_advise, path, 16384 * kb), "read advise 16384 Kb", count);
-	test_function(std::bind(&read_advise, path, 65536 * kb), "read advise 65536 Kb", count);
-	test_function(std::bind(&read_advise, path, 262144 * kb), "read advise 262144 Kb", count);
-	test_function(std::bind(&mmap_plain, path), "mmap plain", count);
-	test_function(std::bind(&mmap_readahead, path), "mmap readahead", count);
+	////test_function(std::bind(&read_plain, path, 4 * kb), "plain read 4 Kb", count);
+	////test_function(std::bind(&read_plain, path, 16 * kb), "plain read 16 Kb", count);
+	////test_function(std::bind(&read_plain, path, 64 * kb), "plain read 64 Kb", count);
+	//test_function(std::bind(&read_plain, path, 256 * kb), "plain read 256 Kb", count);
+	//test_function(std::bind(&read_plain, path, 1024 * kb), "plain read 1024 Kb", count);
+	//test_function(std::bind(&read_plain, path, 4096 * kb), "plain read 4096 Kb", count);
+	//test_function(std::bind(&read_plain, path, 16384 * kb), "plain read 16384 Kb", count);
+	//test_function(std::bind(&read_plain, path, 65536 * kb), "plain read 65536 Kb", count);
+	//test_function(std::bind(&read_plain, path, 262144 * kb), "plain read 262144 Kb", count);
+	////test_function(std::bind(&read_nocache, path, 4 * kb), "read nocache 4 Kb", count);
+	////test_function(std::bind(&read_nocache, path, 16 * kb), "read nocache 16 Kb", count);
+	////test_function(std::bind(&read_nocache, path, 64 * kb), "read nocache 64 Kb", count);
+	//test_function(std::bind(&read_nocache, path, 256 * kb), "read nocache 256 Kb", count);
+	//test_function(std::bind(&read_nocache, path, 1024 * kb), "read nocache 1024 Kb", count);
+	//test_function(std::bind(&read_nocache, path, 4096 * kb), "read nocache 4096 Kb", count);
+	//test_function(std::bind(&read_nocache, path, 16384 * kb), "read nocache 16384 Kb", count);
+	//test_function(std::bind(&read_nocache, path, 65536 * kb), "read nocache 65536 Kb", count);
+	//test_function(std::bind(&read_nocache, path, 262144 * kb), "read nocache 262144 Kb", count);
+	////test_function(std::bind(&read_readahead, path, 4 * kb), "read readahead 4 Kb", count);
+	////test_function(std::bind(&read_readahead, path, 16 * kb), "read readahead 16 Kb", count);
+	////test_function(std::bind(&read_readahead, path, 64 * kb), "read readahead 64 Kb", count);
+	//test_function(std::bind(&read_readahead, path, 256 * kb), "read readahead 256 Kb", count);
+	//test_function(std::bind(&read_readahead, path, 1024 * kb), "read readahead 1024 Kb", count);
+	//test_function(std::bind(&read_readahead, path, 4096 * kb), "read readahead 4096 Kb", count);
+	//test_function(std::bind(&read_readahead, path, 16384 * kb), "read readahead 16384 Kb", count);
+	//test_function(std::bind(&read_readahead, path, 65536 * kb), "read readahead 65536 Kb", count);
+	//test_function(std::bind(&read_readahead, path, 262144 * kb), "read readahead 262144 Kb", count);
+	////test_function(std::bind(&read_advise, path, 4 * kb), "read advise 4 Kb", count);
+	////test_function(std::bind(&read_advise, path, 16 * kb), "read advise 16 Kb", count);
+	////test_function(std::bind(&read_advise, path, 64 * kb), "read advise 64 Kb", count);
+	//test_function(std::bind(&read_advise, path, 256 * kb), "read advise 256 Kb", count);
+	//test_function(std::bind(&read_advise, path, 1024 * kb), "read advise 1024 Kb", count);
+	//test_function(std::bind(&read_advise, path, 4096 * kb), "read advise 4096 Kb", count);
+	//test_function(std::bind(&read_advise, path, 16384 * kb), "read advise 16384 Kb", count);
+	//test_function(std::bind(&read_advise, path, 65536 * kb), "read advise 65536 Kb", count);
+	//test_function(std::bind(&read_advise, path, 262144 * kb), "read advise 262144 Kb", count);
+	//test_function(std::bind(&mmap_plain, path), "mmap plain", count);
+	//test_function(std::bind(&mmap_readahead, path), "mmap readahead", count);
 	test_function(std::bind(&mmap_advise, path), "mmap advise", count);
 }
