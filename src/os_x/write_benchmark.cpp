@@ -14,15 +14,14 @@
 #include <cassert>
 #include <cstdlib>
 #include <cstdint>
+#include <cmath>
 #include <chrono>
 #include <functional>
 #include <memory>
 #include <random>
 #include <ratio>
-#include <system_error>
 #include <thread>
 #include <ccbase/format.hpp>
-#include <ccbase/platform.hpp>
 
 #if PLATFORM_KERNEL == PLATFORM_KERNEL_XNU
 	#include <cstdlib>
@@ -36,37 +35,6 @@
 #endif
 
 static constexpr auto num_trials = 5;
-
-static ssize_t
-full_write(int fd, void* buf, std::size_t count, off_t offset)
-{
-	auto c = size_t{0};
-	do {
-		auto r = ::pwrite(fd, (uint8_t*)buf + c, count - c, offset + c);
-		if (r > 0) {
-			c += r;
-		}
-		else if (r == 0) {
-			return c;
-		}
-		else {
-			if (errno == EINTR) { continue; }
-			return r;
-		}
-	}
-	while (c < count);
-	return c;
-}
-
-static auto
-get_fd(const char* path, int flags)
-{
-	auto fd = ::open(path, flags, S_IRUSR | S_IWUSR);
-	if (fd == -1) {
-		throw std::system_error{errno, std::system_category()};
-	}
-	return fd;
-}
 
 static void
 fill_buffer(uint8_t* p, const std::size_t n)

@@ -1,0 +1,46 @@
+Method                                  Mean (ms)           Stddev (ms)
+read_plain 4 Kb                         116.615133          1.037878
+read_plain 16 Kb                        133.315219          32.847837
+read_plain 64 Kb                        128.604983          19.567984
+read_plain 256 Kb                       113.114472          0.776827
+read_plain 1024 Kb                      101.457776          0.634022
+read_plain 4096 Kb                      86.640300           0.896551
+read_plain 16384 Kb                     107.625122          20.002754
+read_nocache 4 Kb                       983.259861          24.479842
+read_nocache 16 Kb                      398.794752          44.341443
+read_nocache 64 Kb                      198.674914          36.636182
+read_nocache 256 Kb                     191.450836          14.179226
+read_nocache 1024 Kb                    122.224554          33.859611
+read_nocache 4096 Kb                    107.512854          36.488788
+read_nocache 16384 Kb                   90.978779           2.387816
+read_readahead 4 Kb                     118.875479          1.261083
+read_readahead 16 Kb                    116.886089          1.127338
+read_readahead 64 Kb                    117.635930          2.095828
+read_readahead 256 Kb                   155.921565          50.439679
+read_readahead 1024 Kb                  101.338458          0.740663
+read_readahead 4096 Kb                  88.367262           1.395367
+read_readahead 16384 Kb                 108.766391          24.013173
+read_rdadvise 4 Kb                      69.337060           0.969332
+read_rdadvise 16 Kb                     87.034699           36.300777
+read_rdadvise 64 Kb                     75.421880           8.504432
+read_rdadvise 256 Kb                    107.569413          32.511637
+read_rdadvise 1024 Kb                   99.421167           31.802466
+read_rdadvise 4096 Kb                   70.620665           0.450845
+read_rdadvise 16384 Kb                  79.341438           3.726167
+read_async_nocache 4 Kb                 1112.369180         36.669215
+read_async_nocache 16 Kb                385.554779          32.454770
+read_async_nocache 64 Kb                182.944274          42.551927
+read_async_nocache 256 Kb               167.944433          9.527861
+read_async_nocache 1024 Kb              95.074804           0.907759
+read_async_nocache 4096 Kb              103.417544          32.290998
+read_async_nocache 16384 Kb             86.243460           0.554678
+read_async_rdadvise 4 Kb                104.046947          23.874647
+read_async_rdadvise 16 Kb               80.053388           17.171639
+read_async_rdadvise 64 Kb               68.935404           0.729483
+read_async_rdadvise 256 Kb              84.008279           17.762361
+read_async_rdadvise 1024 Kb             82.174753           12.628922
+read_async_rdadvise 4096 Kb             93.552125           34.266825
+read_async_rdadvise 16384 Kb            79.168366           0.682688
+mmap_plain                              283.788014          39.189613
+mmap_readahead                          238.202989          6.291077
+mmap_rdadvise                           106.778163          25.751984

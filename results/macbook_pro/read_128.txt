@@ -1,0 +1,36 @@
+Method                                  Mean (ms)           Stddev (ms)
+read_plain 4 Kb                         465.334176          1.988330
+read_plain 16 Kb                        498.616337          47.097798
+read_plain 64 Kb                        527.885369          85.212908
+read_plain 256 Kb                       465.046067          49.351752
+read_plain 1024 Kb                      453.933462          68.335002
+read_plain 4096 Kb                      344.712946          20.493870
+read_plain 16384 Kb                     415.969946          65.523136
+read_plain 65536 Kb                     422.495798          63.662545
+read_nocache 4 Kb                       3882.828582         28.277092
+read_nocache 16 Kb                      1405.907013         64.112563
+read_nocache 64 Kb                      698.909017          46.883318
+read_nocache 256 Kb                     732.280214          64.625611
+read_nocache 1024 Kb                    434.398355          34.756885
+read_nocache 4096 Kb                    381.997864          65.281181
+read_nocache 16384 Kb                   445.901789          77.203156
+read_nocache 65536 Kb                   428.524764          59.912151
+read_readahead 4 Kb                     552.407737          42.981266
+read_readahead 16 Kb                    540.496979          117.677731
+read_readahead 64 Kb                    524.980111          88.886407
+read_readahead 256 Kb                   460.718739          35.161835
+read_readahead 1024 Kb                  394.900486          0.801369
+read_readahead 4096 Kb                  376.291245          56.247271
+read_readahead 16384 Kb                 414.867434          83.076687
+read_readahead 65536 Kb                 425.257433          81.239113
+read_rdadvise 4 Kb                      314.665196          17.443144
+read_rdadvise 16 Kb                     340.202706          66.158330
+read_rdadvise 64 Kb                     328.569115          55.455065
+read_rdadvise 256 Kb                    361.636163          82.136351
+read_rdadvise 1024 Kb                   326.729609          71.659400
+read_rdadvise 4096 Kb                   343.323661          70.156277
+read_rdadvise 16384 Kb                  332.867401          41.927806
+read_rdadvise 65536 Kb                  356.026250          89.400966
+mmap_plain                              883.501500          56.955039
+mmap_readahead                          857.419906          67.144066
+mmap_rdadvise                           454.761341          103.878641

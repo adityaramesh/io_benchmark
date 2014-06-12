@@ -1,0 +1,28 @@
+Method                                  Mean (ms)           Stddev (ms)
+read_plain 4 Kb                         32.052712           0.976409
+read_plain 16 Kb                        31.949672           0.750992
+read_plain 64 Kb                        31.952141           0.947255
+read_plain 256 Kb                       31.842492           0.898424
+read_plain 1024 Kb                      27.633239           0.864662
+read_plain 4096 Kb                      26.206049           1.488727
+read_nocache 4 Kb                       281.833992          8.441166
+read_nocache 16 Kb                      139.516234          9.647118
+read_nocache 64 Kb                      68.705368           1.423273
+read_nocache 256 Kb                     50.439460           0.475240
+read_nocache 1024 Kb                    27.502740           0.475069
+read_nocache 4096 Kb                    24.631587           0.746979
+read_readahead 4 Kb                     33.868127           0.865692
+read_readahead 16 Kb                    32.756320           0.874076
+read_readahead 64 Kb                    33.021764           0.264057
+read_readahead 256 Kb                   31.904946           0.885567
+read_readahead 1024 Kb                  37.765202           12.309908
+read_readahead 4096 Kb                  26.571943           0.455769
+read_rdadvise 4 Kb                      20.054783           0.394089
+read_rdadvise 16 Kb                     20.118923           0.606084
+read_rdadvise 64 Kb                     28.421858           11.420640
+read_rdadvise 256 Kb                    25.156903           8.119039
+read_rdadvise 1024 Kb                   20.229137           0.674282
+read_rdadvise 4096 Kb                   21.611857           0.951769
+mmap_plain                              59.392767           1.855408
+mmap_readahead                          58.133304           0.825251
+mmap_rdadvise                           24.355021           0.149538

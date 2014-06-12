@@ -4,153 +4,176 @@
 ** Date:	06/03/2014
 ** Contact:	_@adityaramesh.com
 **
-** - Best results:
-**   - 1 Gb or above: read + nocache + 16384 Kb
-**   - 512 Mb or below: read + advise + 256 Kb
+** This is a simple benchmark that compares various methods to sequentially read
+** a file.
+**
+** - Best results on Macbook Pro:
+**   - 256 Mb or above: read + nocache + 16384 Kb
+**   - 128 Mb or below: read + advise + 4 Kb
 */
 
 #include <algorithm>
+#include <array>
+#include <atomic>
 #include <cassert>
 #include <cstdlib>
 #include <cstdint>
+#include <cmath>
 #include <chrono>
 #include <functional>
 #include <memory>
-#include <ratio>
-#include <system_error>
 #include <thread>
+#include <ratio>
 #include <ccbase/format.hpp>
-#include <ccbase/platform.hpp>
+#include <boost/range/numeric.hpp>
+#include <common.hpp>
 
 #if PLATFORM_KERNEL == PLATFORM_KERNEL_XNU
-	#include <cstdlib>
-	#include <fcntl.h>
-	#include <unistd.h>
+	#include <aio.h>
 	#include <sys/mman.h>
-	#include <sys/stat.h>
-	#include <sys/types.h>
 #else
 	#error "Unsupported kernel."
 #endif
 
-// Number of times to run each IO function.
+// Number of times to run each method.
 static constexpr auto num_trials = 5;
 // Special byte value used to verify correctness.
 static constexpr auto needle = uint8_t{0xFF};
 
-static off_t
-file_size(const int fd)
+static auto
+read_loop(int fd, uint8_t* buf, size_t buf_size)
 {
-	struct stat buf;
-	auto r = ::fstat(fd, &buf);
-	if (r == -1) {
-		throw std::system_error{errno, std::system_category()};
+	auto off = off_t{0};
+	auto count = off_t{0};
+
+	for (;;) {
+		auto r = full_read(fd, buf, buf_size, off).get();
+		if (r == 0) { break; }
+		assert(r == buf_size);
+
+		off += buf_size;
+		count += std::count_if(buf, buf + buf_size,
+			[](auto x) { return x == needle; });
 	}
-	return buf.st_size;
+	return count;
+}
+
+static auto
+aio_read_loop(int fd, uint8_t* buf1, uint8_t* buf2, size_t buf_size)
+{
+	using aiocb = struct aiocb;
+	auto cb = aiocb{};
+	cb.aio_fildes = fd;
+	cb.aio_nbytes = buf_size;
+
+	auto l = std::array<aiocb*, 1>{&cb};
+	auto off = off_t{0};
+	auto count = off_t{0};
+
+	auto buf1_active = true;
+	auto r = full_read(fd, buf1, buf_size, off).get();
+	assert(r == buf_size);
+	off += buf_size;
+
+	for (;;) {
+		if (buf1_active) {
+			cb.aio_buf = buf2;
+			cb.aio_offset = off;
+			if (::aio_read(&cb) == -1) { throw current_system_error(); }
+
+			count += std::count_if(buf1, buf1 + buf_size,
+				[](auto x) { return x == needle; });
+		}
+		else {
+			cb.aio_buf = buf1;
+			cb.aio_offset = off;
+			if (::aio_read(&cb) == -1) { throw current_system_error(); }
+
+			count += std::count_if(buf2, buf2 + buf_size,
+				[](auto x) { return x == needle; });
+		}
+
+		buf1_active = !buf1_active;
+		if (::aio_suspend(l.data(), 1, nullptr) == -1) { throw current_system_error(); }
+		if (::aio_error(&cb) == -1) { throw current_system_error(); }
+		r = ::aio_return(&cb);
+		if (r == -1) { throw current_system_error(); }
+		if (r == 0) { break; }
+		assert(r == buf_size);
+		off += buf_size;
+	}
+	return count;
 }
 
 static void
-purge_cache()
+read_worker(
+	int fd,
+	uint8_t* buf1,
+	uint8_t* buf2,
+	size_t buf_size,
+	std::atomic<unsigned>& cv1,
+	std::atomic<unsigned>& cv2
+)
 {
-	if (std::system("purge") == -1) {
-		throw std::runtime_error{"Failed to purge cache."};
-	}
-}
+	auto off = off_t(buf_size);
+	auto buf1_active = true;
 
-static ssize_t
-full_read(int fd, void* buf, size_t count, off_t offset)
-{
-	auto c = size_t{0};
-	do {
-		auto r = ::pread(fd, (uint8_t*)buf + c, count - c, offset + c);
-		if (r > 0) {
-			c += r;
-		}
-		else if (r == 0) {
-			return c;
+	for (;;) {
+		if (buf1_active) {
+			while (cv2 != 0) {}
+
+			auto r = full_read(fd, buf2, buf_size, off).get();
+			if (r == 0) {
+				cv2 = 2;
+				return;
+			}
+			else {
+				cv2 = 1;
+			}
 		}
 		else {
-			if (errno == EINTR) { continue; }
-			return r;
+			while (cv1 != 0) {}
+
+			auto r = full_read(fd, buf1, buf_size, off).get();
+			if (r == 0) {
+				cv1 = 2;
+				return;
+			}
+			else {
+				cv1 = 1;
+			}
 		}
+		buf1_active = !buf1_active;
+		off += buf_size;
 	}
-	while (c < count);
-	return c;
 }
 
 static auto
-get_fd(const char* path, int flags)
-{
-	auto fd = ::open(path, flags, S_IRUSR | S_IWUSR);
-	if (fd == -1) {
-		throw std::system_error{errno, std::system_category()};
-	}
-	return fd;
-}
-
-static auto
-read_check(const char* path)
+check(const char* path)
 {
 	static constexpr auto buf_size = 65536;
-	auto fd = get_fd(path, O_RDONLY);
+	auto fd = safe_open(path, O_RDONLY).get();
 	auto buf = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
-	auto off = off_t{0};
-	auto count = off_t{0};
-
-	for (;;) {
-		auto r = full_read(fd, buf.get(), buf_size, off);
-		if (r == 0) {
-			break;
-		}
-		else if (r == -1) {
-			throw std::system_error{errno, std::system_category()};
-		}
-
-		assert(r == buf_size);
-		off += buf_size;
-		count += std::count_if(buf.get(), buf.get() + buf_size,
-			[](auto x) { return x == needle; });
-	}
+	auto count = read_loop(fd, buf.get(), buf_size);
 	::close(fd);
 	return count;
 }
 
 static auto
-read_plain(const char* path, const std::size_t buf_size)
+read_plain(const char* path, size_t buf_size)
 {
-	auto fd = get_fd(path, O_RDONLY);
+	auto fd = safe_open(path, O_RDONLY).get();
 	auto buf = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
-	auto off = off_t{0};
-	auto count = off_t{0};
-
-	for (;;) {
-		auto r = full_read(fd, buf.get(), buf_size, off);
-		if (r == 0) {
-			break;
-		}
-		else if (r == -1) {
-			throw std::system_error{errno, std::system_category()};
-		}
-
-		if (r != buf_size) {
-			cc::println("r: $; buf_size: $", r, off, buf_size);
-		}
-		assert(r == buf_size);
-		off += buf_size;
-		count += std::count_if(buf.get(), buf.get() + buf_size,
-			[](auto x) { return x == needle; });
-	}
+	auto count = read_loop(fd, buf.get(), buf_size);
 	::close(fd);
 	return count;
 }
 
 static auto
-read_nocache(const char* path, const std::size_t buf_size)
+read_nocache(const char* path, size_t buf_size)
 {
-	auto fd = get_fd(path, O_RDONLY);
+	auto fd = safe_open(path, O_RDONLY).get();
 	auto buf = (uint8_t*)nullptr;
-	auto off = off_t{0};
-	auto count = off_t{0};
 
 	auto r = ::posix_memalign((void**)&buf, 4096, buf_size);
 	if (r != 0) {
@@ -161,85 +184,147 @@ read_nocache(const char* path, const std::size_t buf_size)
 		throw std::system_error{errno, std::system_category()};
 	}
 
-	for (;;) {
-		r = full_read(fd, buf, buf_size, off);
-		if (r == 0) {
-			break;
-		}
-		else if (r == -1) {
-			throw std::system_error{errno, std::system_category()};
-		}
-
-		assert(r == buf_size);
-		off += buf_size;
-		count += std::count_if(buf, buf + buf_size,
-			[](auto x) { return x == needle; });
-	}
+	auto count = read_loop(fd, buf, buf_size);
 	::close(fd);
 	std::free(buf);
 	return count;
 }
 
 static auto
-read_readahead(const char* path, const std::size_t buf_size)
+read_readahead(const char* path, size_t buf_size)
 {
-	auto fd = get_fd(path, O_RDONLY);
+	auto fd = safe_open(path, O_RDONLY).get();
 	auto buf = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
-	auto off = off_t{0};
-	auto count = off_t{0};
 
 	if (::fcntl(fd, F_RDAHEAD, 1) == -1) {
 		throw std::system_error{errno, std::system_category()};
 	}
 
-	for (;;) {
-		auto r = full_read(fd, buf.get(), buf_size, off);
-		if (r == 0) {
-			break;
-		}
-		else if (r == -1) {
-			throw std::system_error{errno, std::system_category()};
-		}
-
-		assert(r == buf_size);
-		off += buf_size;
-		count += std::count_if(buf.get(), buf.get() + buf_size,
-			[](auto x) { return x == needle; });
-	}
+	auto count = read_loop(fd, buf.get(), buf_size);
 	::close(fd);
 	return count;
 }
 
 static auto
-read_advise(const char* path, const std::size_t buf_size)
+read_rdadvise(const char* path, size_t buf_size)
 {
-	auto fd = get_fd(path, O_RDONLY);
-	auto fs = file_size(fd);
+	auto fd = safe_open(path, O_RDONLY).get();
+	auto fs = file_size(fd).get();
 	auto buf = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
-	auto off = off_t{0};
-	auto count = off_t{0};
 
-	struct radvisory rd;
+	using radvisory = struct radvisory;
+	auto rd = radvisory{};
 	rd.ra_offset = 0;
 	rd.ra_count = fs;
 	if (::fcntl(fd, F_RDADVISE, &rd) == -1) {
 		throw std::system_error{errno, std::system_category()};
 	}
 
-	for (;;) {
-		auto r = full_read(fd, buf.get(), buf_size, off);
-		if (r == 0) {
-			break;
-		}
-		else if (r == -1) {
-			throw std::system_error{errno, std::system_category()};
-		}
+	auto count = read_loop(fd, buf.get(), buf_size);
+	::close(fd);
+	return count;
+}
 
-		assert(r == buf_size);
-		off += buf_size;
-		count += std::count_if(buf.get(), buf.get() + buf_size,
-			[](auto x) { return x == needle; });
+static auto
+read_aio_nocache(const char* path, size_t buf_size)
+{
+	auto fd = safe_open(path, O_RDONLY).get();
+	auto buf1 = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
+	auto buf2 = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
+
+	if (::fcntl(fd, F_NOCACHE, 1) == -1) {
+		throw std::system_error{errno, std::system_category()};
 	}
+
+	auto count = aio_read_loop(fd, buf1.get(), buf2.get(), buf_size);
+	::close(fd);
+	return count;
+}
+
+static auto
+read_aio_rdahead(const char* path, size_t buf_size)
+{
+	auto fd = safe_open(path, O_RDONLY).get();
+	auto fs = file_size(fd).get();
+	auto buf1 = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
+	auto buf2 = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
+
+	if (::fcntl(fd, F_RDAHEAD, 1) == -1) {
+		throw std::system_error{errno, std::system_category()};
+	}
+
+	auto count = aio_read_loop(fd, buf1.get(), buf2.get(), buf_size);
+	::close(fd);
+	return count;
+}
+
+static auto
+read_aio_rdadvise(const char* path, size_t buf_size)
+{
+	auto fd = safe_open(path, O_RDONLY).get();
+	auto fs = file_size(fd).get();
+	auto buf1 = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
+	auto buf2 = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
+
+	using radvisory = struct radvisory;
+	auto rd = radvisory{};
+	rd.ra_offset = 0;
+	rd.ra_count = fs;
+	if (::fcntl(fd, F_RDADVISE, &rd) == -1) {
+		throw std::system_error{errno, std::system_category()};
+	}
+
+	auto count = aio_read_loop(fd, buf1.get(), buf2.get(), buf_size);
+	::close(fd);
+	return count;
+}
+
+static auto
+read_async_rdadvise(const char* path, size_t buf_size)
+{
+	auto fd = safe_open(path, O_RDONLY).get();
+	auto fs = file_size(fd).get();
+	auto buf1 = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
+	auto buf2 = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
+
+	using radvisory = struct radvisory;
+	auto rd = radvisory{};
+	rd.ra_offset = 0;
+	rd.ra_count = fs;
+	if (::fcntl(fd, F_RDADVISE, &rd) == -1) {
+		throw std::system_error{errno, std::system_category()};
+	}
+
+	std::atomic<unsigned> cv1{1};
+	std::atomic<unsigned> cv2{0};
+	auto count = off_t{0};
+	auto off = unsigned{0};
+	auto buf1_active = true;
+
+	auto t = std::thread(read_worker, fd, buf1.get(), buf2.get(), buf_size,
+		std::ref(cv1), std::ref(cv2));
+	auto r = full_read(fd, buf1.get(), buf_size, 0).get();
+	assert(r == buf_size);
+
+	for (;;) {
+		if (buf1_active) {
+			while (cv1 == 0) {}
+			if (cv1 == 2) { goto exit; }
+			count += std::count_if(buf1.get(), buf1.get() + buf_size,
+				[](auto x) { return x == needle; });
+			cv1 = 0;
+		}
+		else {
+			while (cv2 == 0) {}
+			if (cv2 == 2) { goto exit; }
+			count += std::count_if(buf2.get(), buf2.get() + buf_size,
+				[](auto x) { return x == needle; });
+			cv2 = 0;
+		}
+		buf1_active = !buf1_active;
+	}
+exit:
+	t.join();
 	::close(fd);
 	return count;
 }
@@ -247,8 +332,8 @@ read_advise(const char* path, const std::size_t buf_size)
 static auto
 mmap_plain(const char* path)
 {
-	auto fd = get_fd(path, O_RDONLY);
-	auto fs = file_size(fd);
+	auto fd = safe_open(path, O_RDONLY).get();
+	auto fs = file_size(fd).get();
 	auto p = (uint8_t*)::mmap(nullptr, fs, PROT_READ, MAP_PRIVATE, fd, 0);
 	auto count = std::count_if(p, p + fs, [](auto x) { return x == needle; });
 	::munmap(p, fs);
@@ -256,14 +341,12 @@ mmap_plain(const char* path)
 }
 
 static auto
-mmap_advise(const char* path)
+mmap_readahead(const char* path)
 {
-	auto fd = get_fd(path, O_RDONLY);
-	auto fs = file_size(fd);
-	struct radvisory rd;
-	rd.ra_offset = 0;
-	rd.ra_count = fs;
-	if (::fcntl(fd, F_RDADVISE, &rd) == -1) {
+	auto fd = safe_open(path, O_RDONLY).get();
+	auto fs = file_size(fd).get();
+
+	if (::fcntl(fd, F_RDAHEAD, 1) == -1) {
 		throw std::system_error{errno, std::system_category()};
 	}
 
@@ -274,11 +357,13 @@ mmap_advise(const char* path)
 }
 
 static auto
-mmap_advise(const char* path)
+mmap_rdadvise(const char* path)
 {
-	auto fd = get_fd(path, O_RDONLY);
-	auto fs = file_size(fd);
-	struct radvisory rd;
+	auto fd = safe_open(path, O_RDONLY).get();
+	auto fs = file_size(fd).get();
+
+	using radvisory = struct radvisory;
+	auto rd = radvisory{};
 	rd.ra_offset = 0;
 	rd.ra_count = fs;
 	if (::fcntl(fd, F_RDADVISE, &rd) == -1) {
@@ -292,28 +377,55 @@ mmap_advise(const char* path)
 }
 
 template <class Function>
-static auto test_function(
-	const Function& f,
-	const char* name,
-	const unsigned count
-)
+static void test(const Function& f, const char* name, unsigned count)
 {
 	using std::chrono::high_resolution_clock;
 	using std::chrono::duration_cast;
 	using std::chrono::duration;
 	using milliseconds = duration<double, std::ratio<1, 1000>>;
+
 	auto mean = double{0};
+	auto sample = std::array<double, num_trials>{};
 
 	for (auto i = 0; i != num_trials; ++i) {
 		auto t1 = high_resolution_clock::now();
 		if (f() != count) { throw std::runtime_error{"Invalid count."}; }
 		auto t2 = high_resolution_clock::now();
 		auto ms = duration_cast<milliseconds>(t2 - t1).count();
+		sample[i] = ms;
 		mean += ms;
-		purge_cache();
+		purge_cache().get();
 	}
+
 	mean /= num_trials;
-	cc::println("Function: $. Mean time: $ ms.", name, mean);
+	auto stddev = std::sqrt(1.0 / num_trials * boost::accumulate(
+		sample, 0.0, [&](auto x, auto y) {
+			return x + std::pow(y - mean, 2);
+		}));
+
+	std::printf("%-40s%-20f%f\n", name, mean, stddev);
+	std::fflush(stdout);
+}
+
+template <class Function, class Range>
+static void test_range(
+	const Function& func,
+	const char* path,
+	const char* name,
+	const Range& range,
+	unsigned count,
+	off_t file_size
+)
+{
+	static constexpr auto kb = 1024;
+	auto buf = std::array<char, 40>{};
+
+	for (const auto& bs : range) {
+		if (bs * kb <= file_size) {
+			std::snprintf(buf.data(), 40, "%s %d Kb", name, bs);
+			test(std::bind(func, path, bs * kb), buf.data(), count);
+		}
+	}
 }
 
 int main(int argc, char** argv)
@@ -327,48 +439,26 @@ int main(int argc, char** argv)
 		return EXIT_FAILURE;
 	}
 
-	auto kb = 1024;
 	auto path = argv[1];
-	auto count = read_check(path);
-	purge_cache();
 
-	////test_function(std::bind(&read_plain, path, 4 * kb), "plain read 4 Kb", count);
-	////test_function(std::bind(&read_plain, path, 16 * kb), "plain read 16 Kb", count);
-	////test_function(std::bind(&read_plain, path, 64 * kb), "plain read 64 Kb", count);
-	//test_function(std::bind(&read_plain, path, 256 * kb), "plain read 256 Kb", count);
-	//test_function(std::bind(&read_plain, path, 1024 * kb), "plain read 1024 Kb", count);
-	//test_function(std::bind(&read_plain, path, 4096 * kb), "plain read 4096 Kb", count);
-	//test_function(std::bind(&read_plain, path, 16384 * kb), "plain read 16384 Kb", count);
-	//test_function(std::bind(&read_plain, path, 65536 * kb), "plain read 65536 Kb", count);
-	//test_function(std::bind(&read_plain, path, 262144 * kb), "plain read 262144 Kb", count);
-	////test_function(std::bind(&read_nocache, path, 4 * kb), "read nocache 4 Kb", count);
-	////test_function(std::bind(&read_nocache, path, 16 * kb), "read nocache 16 Kb", count);
-	////test_function(std::bind(&read_nocache, path, 64 * kb), "read nocache 64 Kb", count);
-	//test_function(std::bind(&read_nocache, path, 256 * kb), "read nocache 256 Kb", count);
-	//test_function(std::bind(&read_nocache, path, 1024 * kb), "read nocache 1024 Kb", count);
-	//test_function(std::bind(&read_nocache, path, 4096 * kb), "read nocache 4096 Kb", count);
-	//test_function(std::bind(&read_nocache, path, 16384 * kb), "read nocache 16384 Kb", count);
-	//test_function(std::bind(&read_nocache, path, 65536 * kb), "read nocache 65536 Kb", count);
-	//test_function(std::bind(&read_nocache, path, 262144 * kb), "read nocache 262144 Kb", count);
-	////test_function(std::bind(&read_readahead, path, 4 * kb), "read readahead 4 Kb", count);
-	////test_function(std::bind(&read_readahead, path, 16 * kb), "read readahead 16 Kb", count);
-	////test_function(std::bind(&read_readahead, path, 64 * kb), "read readahead 64 Kb", count);
-	//test_function(std::bind(&read_readahead, path, 256 * kb), "read readahead 256 Kb", count);
-	//test_function(std::bind(&read_readahead, path, 1024 * kb), "read readahead 1024 Kb", count);
-	//test_function(std::bind(&read_readahead, path, 4096 * kb), "read readahead 4096 Kb", count);
-	//test_function(std::bind(&read_readahead, path, 16384 * kb), "read readahead 16384 Kb", count);
-	//test_function(std::bind(&read_readahead, path, 65536 * kb), "read readahead 65536 Kb", count);
-	//test_function(std::bind(&read_readahead, path, 262144 * kb), "read readahead 262144 Kb", count);
-	////test_function(std::bind(&read_advise, path, 4 * kb), "read advise 4 Kb", count);
-	////test_function(std::bind(&read_advise, path, 16 * kb), "read advise 16 Kb", count);
-	////test_function(std::bind(&read_advise, path, 64 * kb), "read advise 64 Kb", count);
-	//test_function(std::bind(&read_advise, path, 256 * kb), "read advise 256 Kb", count);
-	//test_function(std::bind(&read_advise, path, 1024 * kb), "read advise 1024 Kb", count);
-	//test_function(std::bind(&read_advise, path, 4096 * kb), "read advise 4096 Kb", count);
-	//test_function(std::bind(&read_advise, path, 16384 * kb), "read advise 16384 Kb", count);
-	//test_function(std::bind(&read_advise, path, 65536 * kb), "read advise 65536 Kb", count);
-	//test_function(std::bind(&read_advise, path, 262144 * kb), "read advise 262144 Kb", count);
-	//test_function(std::bind(&mmap_plain, path), "mmap plain", count);
-	//test_function(std::bind(&mmap_readahead, path), "mmap readahead", count);
-	test_function(std::bind(&mmap_advise, path), "mmap advise", count);
+	auto fd = safe_open(path, O_RDONLY).get();
+	auto fs = file_size(fd).get();
+	safe_close(fd).get();
+
+	auto count = check(path);
+	auto sizes = {4, 16, 64, 256, 1024, 4096, 16384, 65536, 262144};
+	purge_cache().get();
+
+	std::printf("%-40s%-20s%s\n", "Method", "Mean (ms)", "Stddev (ms)");
+	std::fflush(stdout);
+	//test_range(&read_plain, path, "read_plain", sizes, count, fs);
+	//test_range(&read_nocache, path, "read_nocache", sizes, count, fs);
+	//test_range(&read_readahead, path, "read_readahead", sizes, count, fs);
+	//test_range(&read_rdadvise, path, "read_rdadvise", sizes, count, fs);
+	//test_range(&read_aio_nocache, path, "read_aio_nocache", sizes, count, fs);
+	test_range(&read_aio_rdadvise, path, "read_aio_rdadvise", sizes, count, fs);
+	test_range(&read_async_rdadvise, path, "read_async_rdadvise", sizes, count, fs);
+	//test(std::bind(&mmap_plain, path), "mmap_plain", count);
+	//test(std::bind(&mmap_readahead, path), "mmap_readahead", count);
+	//test(std::bind(&mmap_rdadvise, path), "mmap_rdadvise", count);
 }
