@@ -9,7 +9,9 @@
 **
 ** - Best results on Macbook Pro:
 **   - 256 Mb or above: read + nocache + 16384 Kb
-**   - 128 Mb or below: read + advise + 4 Kb
+**   - 128 Mb or below:
+**     - read + rdadvise + 256 Kb
+**     - read + async + rdadvise + 256 Kb
 */
 
 #include <algorithm>
@@ -36,7 +38,7 @@
 #endif
 
 // Number of times to run each method.
-static constexpr auto num_trials = 5;
+static constexpr auto num_trials = 1;
 // Special byte value used to verify correctness.
 static constexpr auto needle = uint8_t{0xFF};
 
@@ -121,7 +123,6 @@ read_worker(
 	for (;;) {
 		if (buf1_active) {
 			while (cv2 != 0) {}
-
 			auto r = full_read(fd, buf2, buf_size, off).get();
 			if (r == 0) {
 				cv2 = 2;
@@ -133,7 +134,6 @@ read_worker(
 		}
 		else {
 			while (cv1 != 0) {}
-
 			auto r = full_read(fd, buf1, buf_size, off).get();
 			if (r == 0) {
 				cv1 = 2;
@@ -145,6 +145,40 @@ read_worker(
 		}
 		buf1_active = !buf1_active;
 		off += buf_size;
+	}
+}
+
+static auto
+async_io_loop(int fd, uint8_t* buf1, uint8_t* buf2, size_t buf_size)
+{
+	std::atomic<unsigned> cv1{1};
+	std::atomic<unsigned> cv2{0};
+	auto count = off_t{0};
+	auto off = unsigned{0};
+	auto buf1_active = true;
+
+	auto t = std::thread(read_worker, fd, buf1, buf2, buf_size,
+		std::ref(cv1), std::ref(cv2));
+	t.detach();
+	auto r = full_read(fd, buf1, buf_size, 0).get();
+	assert(r == buf_size);
+
+	for (;;) {
+		if (buf1_active) {
+			while (cv1 == 0) {}
+			if (cv1 == 2) { return count; }
+			count += std::count_if(buf1, buf1 + buf_size,
+				[](auto x) { return x == needle; });
+			cv1 = 0;
+		}
+		else {
+			while (cv2 == 0) {}
+			if (cv2 == 2) { return count; }
+			count += std::count_if(buf2, buf2 + buf_size,
+				[](auto x) { return x == needle; });
+			cv2 = 0;
+		}
+		buf1_active = !buf1_active;
 	}
 }
 
@@ -280,6 +314,40 @@ read_aio_rdadvise(const char* path, size_t buf_size)
 }
 
 static auto
+read_async_nocache(const char* path, size_t buf_size)
+{
+	auto fd = safe_open(path, O_RDONLY).get();
+	auto fs = file_size(fd).get();
+	auto buf1 = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
+	auto buf2 = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
+
+	if (::fcntl(fd, F_NOCACHE, 1) == -1) {
+		throw std::system_error{errno, std::system_category()};
+	}
+
+	auto count = async_io_loop(fd, buf1.get(), buf2.get(), buf_size);
+	::close(fd);
+	return count;
+}
+
+static auto
+read_async_rdahead(const char* path, size_t buf_size)
+{
+	auto fd = safe_open(path, O_RDONLY).get();
+	auto fs = file_size(fd).get();
+	auto buf1 = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
+	auto buf2 = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
+
+	if (::fcntl(fd, F_RDAHEAD, 1) == -1) {
+		throw std::system_error{errno, std::system_category()};
+	}
+
+	auto count = async_io_loop(fd, buf1.get(), buf2.get(), buf_size);
+	::close(fd);
+	return count;
+}
+
+static auto
 read_async_rdadvise(const char* path, size_t buf_size)
 {
 	auto fd = safe_open(path, O_RDONLY).get();
@@ -295,36 +363,7 @@ read_async_rdadvise(const char* path, size_t buf_size)
 		throw std::system_error{errno, std::system_category()};
 	}
 
-	std::atomic<unsigned> cv1{1};
-	std::atomic<unsigned> cv2{0};
-	auto count = off_t{0};
-	auto off = unsigned{0};
-	auto buf1_active = true;
-
-	auto t = std::thread(read_worker, fd, buf1.get(), buf2.get(), buf_size,
-		std::ref(cv1), std::ref(cv2));
-	auto r = full_read(fd, buf1.get(), buf_size, 0).get();
-	assert(r == buf_size);
-
-	for (;;) {
-		if (buf1_active) {
-			while (cv1 == 0) {}
-			if (cv1 == 2) { goto exit; }
-			count += std::count_if(buf1.get(), buf1.get() + buf_size,
-				[](auto x) { return x == needle; });
-			cv1 = 0;
-		}
-		else {
-			while (cv2 == 0) {}
-			if (cv2 == 2) { goto exit; }
-			count += std::count_if(buf2.get(), buf2.get() + buf_size,
-				[](auto x) { return x == needle; });
-			cv2 = 0;
-		}
-		buf1_active = !buf1_active;
-	}
-exit:
-	t.join();
+	auto count = async_io_loop(fd, buf1.get(), buf2.get(), buf_size);
 	::close(fd);
 	return count;
 }
@@ -403,7 +442,7 @@ static void test(const Function& f, const char* name, unsigned count)
 			return x + std::pow(y - mean, 2);
 		}));
 
-	std::printf("%-40s%-20f%f\n", name, mean, stddev);
+	std::printf("%s, %f, %f\n", name, mean, stddev);
 	std::fflush(stdout);
 }
 
@@ -446,17 +485,20 @@ int main(int argc, char** argv)
 	safe_close(fd).get();
 
 	auto count = check(path);
-	auto sizes = {4, 16, 64, 256, 1024, 4096, 16384, 65536, 262144};
+	auto sizes = {/*4, 16, 64, 256, 1024, 4096, 16384,*/ 65536/*, 262144*/};
 	purge_cache().get();
 
-	std::printf("%-40s%-20s%s\n", "Method", "Mean (ms)", "Stddev (ms)");
+	std::printf("%s, %s, %s\n", "Method", "Mean (ms)", "Stddev (ms)");
 	std::fflush(stdout);
 	//test_range(&read_plain, path, "read_plain", sizes, count, fs);
 	//test_range(&read_nocache, path, "read_nocache", sizes, count, fs);
 	//test_range(&read_readahead, path, "read_readahead", sizes, count, fs);
 	//test_range(&read_rdadvise, path, "read_rdadvise", sizes, count, fs);
 	//test_range(&read_aio_nocache, path, "read_aio_nocache", sizes, count, fs);
+	//test_range(&read_aio_rdahead, path, "read_aio_rdahead", sizes, count, fs);
 	test_range(&read_aio_rdadvise, path, "read_aio_rdadvise", sizes, count, fs);
+	//test_range(&read_async_nocache, path, "read_async_nocache", sizes, count, fs);
+	//test_range(&read_async_rdahead, path, "read_async_rdahead", sizes, count, fs);
 	test_range(&read_async_rdadvise, path, "read_async_rdadvise", sizes, count, fs);
 	//test(std::bind(&mmap_plain, path), "mmap_plain", count);
 	//test(std::bind(&mmap_readahead, path), "mmap_readahead", count);
