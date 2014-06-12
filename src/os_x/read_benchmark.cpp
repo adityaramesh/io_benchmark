@@ -68,7 +68,7 @@ aio_read_loop(int fd, uint8_t* buf1, uint8_t* buf2, size_t buf_size)
 	cb.aio_fildes = fd;
 	cb.aio_nbytes = buf_size;
 
-	auto l = std::array<aiocb*, 1>{&cb};
+	auto l = std::array<aiocb*, 1>{{&cb}};
 	auto off = off_t{0};
 	auto count = off_t{0};
 
@@ -154,7 +154,6 @@ async_io_loop(int fd, uint8_t* buf1, uint8_t* buf2, size_t buf_size)
 	std::atomic<unsigned> cv1{1};
 	std::atomic<unsigned> cv2{0};
 	auto count = off_t{0};
-	auto off = unsigned{0};
 	auto buf1_active = true;
 
 	auto t = std::thread(read_worker, fd, buf1, buf2, buf_size,
@@ -279,7 +278,6 @@ static auto
 read_aio_rdahead(const char* path, size_t buf_size)
 {
 	auto fd = safe_open(path, O_RDONLY).get();
-	auto fs = file_size(fd).get();
 	auto buf1 = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
 	auto buf2 = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
 
@@ -317,7 +315,6 @@ static auto
 read_async_nocache(const char* path, size_t buf_size)
 {
 	auto fd = safe_open(path, O_RDONLY).get();
-	auto fs = file_size(fd).get();
 	auto buf1 = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
 	auto buf2 = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
 
@@ -334,7 +331,6 @@ static auto
 read_async_rdahead(const char* path, size_t buf_size)
 {
 	auto fd = safe_open(path, O_RDONLY).get();
-	auto fs = file_size(fd).get();
 	auto buf1 = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
 	auto buf2 = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
 
