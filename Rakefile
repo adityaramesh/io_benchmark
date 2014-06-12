@@ -2,7 +2,7 @@ require 'rake/clean'
 
 cxx       = ENV['CXX']
 boost     = ENV['BOOST_INCLUDE_PATH']
-ccbase    = ENV['CCBASE_INCLUDE_PATH']
+ccbase    = "include/ccbase"
 langflags = "-std=c++1y"
 wflags    = "-Wall -Wextra -pedantic -Wno-return-type-c-linkage"
 archflags = "-march=native"
