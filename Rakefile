@@ -9,7 +9,7 @@ archflags = "-march=native"
 incflags  = "-I include -isystem #{boost} -isystem #{ccbase}"
 
 if cxx.include? "clang"
-	optflags = "-Ofast -fno-fast-math -flto -DNDEBUG -DNEO_NO_DEBUG -ggdb"
+	optflags = "-Ofast -fno-fast-math -flto -DNDEBUG -DNEO_NO_DEBUG"
 elsif cxx.include? "g++"
 	optflags = "-Ofast -fno-fast-math -flto -fwhole-program"
 end

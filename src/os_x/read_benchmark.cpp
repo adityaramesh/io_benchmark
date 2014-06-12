@@ -158,27 +158,29 @@ async_io_loop(int fd, uint8_t* buf1, uint8_t* buf2, size_t buf_size)
 
 	auto t = std::thread(read_worker, fd, buf1, buf2, buf_size,
 		std::ref(cv1), std::ref(cv2));
-	t.detach();
 	auto r = full_read(fd, buf1, buf_size, 0).get();
 	assert(r == buf_size);
 
 	for (;;) {
 		if (buf1_active) {
 			while (cv1 == 0) {}
-			if (cv1 == 2) { return count; }
+			if (cv1 == 2) { goto exit; }
 			count += std::count_if(buf1, buf1 + buf_size,
 				[](auto x) { return x == needle; });
 			cv1 = 0;
 		}
 		else {
 			while (cv2 == 0) {}
-			if (cv2 == 2) { return count; }
+			if (cv2 == 2) { goto exit; }
 			count += std::count_if(buf2, buf2 + buf_size,
 				[](auto x) { return x == needle; });
 			cv2 = 0;
 		}
 		buf1_active = !buf1_active;
 	}
+exit:
+	t.join();
+	return count;
 }
 
 static auto
@@ -481,22 +483,22 @@ int main(int argc, char** argv)
 	safe_close(fd).get();
 
 	auto count = check(path);
-	auto sizes = {/*4, 16, 64, 256, 1024, 4096, 16384,*/ 65536/*, 262144*/};
+	auto sizes = {4, 16, 64, 256, 1024, 4096, 16384, 65536, 262144};
 	purge_cache().get();
 
 	std::printf("%s, %s, %s\n", "Method", "Mean (ms)", "Stddev (ms)");
 	std::fflush(stdout);
-	//test_range(&read_plain, path, "read_plain", sizes, count, fs);
-	//test_range(&read_nocache, path, "read_nocache", sizes, count, fs);
-	//test_range(&read_readahead, path, "read_readahead", sizes, count, fs);
-	//test_range(&read_rdadvise, path, "read_rdadvise", sizes, count, fs);
-	//test_range(&read_aio_nocache, path, "read_aio_nocache", sizes, count, fs);
-	//test_range(&read_aio_rdahead, path, "read_aio_rdahead", sizes, count, fs);
+	test_range(&read_plain, path, "read_plain", sizes, count, fs);
+	test_range(&read_nocache, path, "read_nocache", sizes, count, fs);
+	test_range(&read_readahead, path, "read_readahead", sizes, count, fs);
+	test_range(&read_rdadvise, path, "read_rdadvise", sizes, count, fs);
+	test_range(&read_aio_nocache, path, "read_aio_nocache", sizes, count, fs);
+	test_range(&read_aio_rdahead, path, "read_aio_rdahead", sizes, count, fs);
 	test_range(&read_aio_rdadvise, path, "read_aio_rdadvise", sizes, count, fs);
-	//test_range(&read_async_nocache, path, "read_async_nocache", sizes, count, fs);
-	//test_range(&read_async_rdahead, path, "read_async_rdahead", sizes, count, fs);
+	test_range(&read_async_nocache, path, "read_async_nocache", sizes, count, fs);
+	test_range(&read_async_rdahead, path, "read_async_rdahead", sizes, count, fs);
 	test_range(&read_async_rdadvise, path, "read_async_rdadvise", sizes, count, fs);
-	//test(std::bind(&mmap_plain, path), "mmap_plain", count);
-	//test(std::bind(&mmap_readahead, path), "mmap_readahead", count);
-	//test(std::bind(&mmap_rdadvise, path), "mmap_rdadvise", count);
+	test(std::bind(&mmap_plain, path), "mmap_plain", count);
+	test(std::bind(&mmap_readahead, path), "mmap_readahead", count);
+	test(std::bind(&mmap_rdadvise, path), "mmap_rdadvise", count);
 }
