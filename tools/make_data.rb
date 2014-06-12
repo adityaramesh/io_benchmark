@@ -5,7 +5,7 @@ def make_test_files()
 	[8, 16, 32, 64, 128, 256, 512, 1024].each do |i|
 		file_size = i * 2**20
 		count = file_size / block_size
-		puts "Creating #{i} Mb test file."
+		puts "Creating #{i} MB test file."
 		`dd if=/dev/urandom of=data/test_#{i}.bin bs=#{block_size} count=#{count}`
 	end
 end

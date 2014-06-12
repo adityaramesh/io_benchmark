@@ -15,11 +15,14 @@ elsif cxx.include? "g++"
 end
 
 cxxflags = "#{langflags} #{wflags} #{archflags} #{incflags} #{optflags}"
+dirs = ["data", "out"]
 tests = ["out/read_benchmark.run"]
 
-task :default => ["out"] + tests
+task :default => dirs + tests
 
-directory "out"
+dirs.each do |d|
+	directory d
+end
 
 file "out/read_benchmark.run" => ["out"] do
 	sh "#{cxx} #{cxxflags} -o out/read_benchmark.run src/os_x/read_benchmark.cpp"
