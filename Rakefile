@@ -16,7 +16,7 @@ end
 
 cxxflags = "#{langflags} #{wflags} #{archflags} #{incflags} #{optflags}"
 dirs = ["data", "out"]
-tests = ["out/read_benchmark.run"]
+tests = ["out/read_benchmark.run", "out/write_benchmark.run"]
 
 task :default => dirs + tests
 
@@ -26,6 +26,10 @@ end
 
 file "out/read_benchmark.run" => ["out"] do
 	sh "#{cxx} #{cxxflags} -o out/read_benchmark.run src/os_x/read_benchmark.cpp"
+end
+
+file "out/write_benchmark.run" => ["out"] do
+	sh "#{cxx} #{cxxflags} -o out/write_benchmark.run src/os_x/write_benchmark.cpp"
 end
 
 task :clobber do

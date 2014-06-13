@@ -1,11 +1,9 @@
 #! /usr/bin/env bash
 
+sizes=(8 16 24 32 40 48 56 64 80 96 112 128 160 192 224 256 320 384 448 512 640
+768 896 1024)
+
 set -x
-./out/read_benchmark.run data/test_8.bin | tee results/read_8.txt
-./out/read_benchmark.run data/test_16.bin | tee results/read_16.txt
-./out/read_benchmark.run data/test_32.bin | tee results/read_32.txt
-./out/read_benchmark.run data/test_64.bin | tee results/read_64.txt
-./out/read_benchmark.run data/test_128.bin | tee results/read_128.txt
-./out/read_benchmark.run data/test_256.bin | tee results/read_256.txt
-# ./out/read_benchmark.run data/test_512.bin | tee results/read_512.txt
-# ./out/read_benchmark.run data/test_1024.bin | tee results/read_1024.txt
+for s in ${sizes[@]}; do
+	./out/read_benchmark.run data/test_$s.bin | tee results/read_$s.csv
+done

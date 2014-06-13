@@ -7,262 +7,167 @@
 ** - https://github.com/Feh/write-patterns
 ** - http://blog.plenz.com/2014-04/so-you-want-to-write-to-a-file-real-fast.html
 ** - https://blog.mozilla.org/tglek/2010/09/09/help-wanted-does-fcntlf_preallocate-work-as-advertised-on-osx/
+**
 ** - Best results: preallocate + truncate + 256 Kb.
 */
 
 #include <algorithm>
+#include <array>
+#include <atomic>
 #include <cassert>
 #include <cstdlib>
 #include <cstdint>
 #include <cmath>
-#include <chrono>
 #include <functional>
 #include <memory>
+#include <thread>
 #include <random>
 #include <ratio>
-#include <thread>
 #include <ccbase/format.hpp>
+#include <boost/range/numeric.hpp>
+
+#include <configuration.hpp>
+#include <io_common.hpp>
+#include <test.hpp>
 
 #if PLATFORM_KERNEL == PLATFORM_KERNEL_XNU
-	#include <cstdlib>
-	#include <fcntl.h>
-	#include <unistd.h>
 	#include <sys/mman.h>
-	#include <sys/stat.h>
-	#include <sys/types.h>
 #else
 	#error "Unsupported kernel."
 #endif
 
-static constexpr auto num_trials = 5;
-
 static void
-fill_buffer(uint8_t* p, const std::size_t n)
+fill_buffer(uint8_t* p, size_t count)
 {
 	auto gen = std::mt19937{std::random_device{}()};
 	auto dist = std::uniform_int_distribution<uint8_t>(0, 255);
-	std::generate(p, p + n, [&]() { return dist(gen); });
+	std::generate(p, p + count, [&]() { return dist(gen); });
 }
 
 static void
-write_plain(const char* path, const std::size_t buf_size, const std::size_t n)
+preallocate(int fd, size_t count)
 {
-	auto fd = get_fd(path, O_WRONLY | O_CREAT | O_TRUNC);
-	auto buf = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
-	auto off = off_t{0};
-
-	for (;;) {
-		fill_buffer(buf.get(), buf_size);
-		auto r = full_write(fd, buf.get(), buf_size, off);
-		if (r == -1) {
-			throw std::system_error{errno, std::system_category()};
-		}
-
-		assert(r == buf_size);
-		off += buf_size;
-		if (off >= n) { break; }
-	}
-	::close(fd);
-}
-
-static void
-write_nocache(const char* path, const std::size_t buf_size, const std::size_t n)
-{
-	auto fd = get_fd(path, O_WRONLY | O_CREAT | O_TRUNC);
-	auto buf = (uint8_t*)nullptr;
-	auto off = off_t{0};
-
-	auto r = ::posix_memalign((void**)&buf, 4096, buf_size);
-	if (r != 0) {
-		throw std::system_error{r, std::system_category()};
-	}
-
-	if (::fcntl(fd, F_NOCACHE, 1) == -1) {
-		throw std::system_error{errno, std::system_category()};
-	}
-
-	for (;;) {
-		fill_buffer(buf, buf_size);
-		auto r = full_write(fd, buf, buf_size, off);
-		if (r == -1) {
-			throw std::system_error{errno, std::system_category()};
-		}
-
-		assert(r == buf_size);
-		off += buf_size;
-		if (off >= n) { break; }
-	}
-	::close(fd);
-	std::free(buf);
-}
-
-static void
-write_preallocate(const char* path, const std::size_t buf_size, const std::size_t n)
-{
-	auto fd = get_fd(path, O_WRONLY | O_CREAT | O_TRUNC);
-	auto buf = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
-	auto off = off_t{0};
-
 	struct fstore fs;
 	fs.fst_posmode = F_ALLOCATECONTIG;
 	fs.fst_offset = F_PEOFPOSMODE;
-	fs.fst_length = n;
-	if (::fcntl(fd, F_PREALLOCATE, &fs) == -1) {
-		fs.fst_posmode = F_ALLOCATEALL;
-		if (::fcntl(fd, F_PREALLOCATE, &fs) == -1) {
-			cc::errln("Warning: failed to preallocate space.");
-			goto write;
-		}
-	}
-
-write:
-	for (;;) {
-		fill_buffer(buf.get(), buf_size);
-		auto r = full_write(fd, buf.get(), buf_size, off);
-		if (r == -1) {
-			throw std::system_error{errno, std::system_category()};
-		}
-
-		assert(r == buf_size);
-		off += buf_size;
-		if (off >= n) { break; }
-	}
-	::close(fd);
-}
-
-static void
-write_preallocate_truncate(const char* path, const std::size_t buf_size, const std::size_t n)
-{
-	auto fd = get_fd(path, O_WRONLY | O_CREAT | O_TRUNC);
-	auto buf = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
-	auto off = off_t{0};
-	struct fstore fs;
-	fs.fst_posmode = F_ALLOCATECONTIG;
-	fs.fst_offset = F_PEOFPOSMODE;
-	fs.fst_length = n;
-	if (::fcntl(fd, F_PREALLOCATE, &fs) == -1) {
-		fs.fst_posmode = F_ALLOCATEALL;
-		if (::fcntl(fd, F_PREALLOCATE, &fs) == -1) {
-			cc::errln("Warning: failed to preallocate space.");
-			goto write;
-		}
-	}
-	if (::ftruncate(fd, n) == -1) {
-		throw std::system_error{errno, std::system_category()};
-	}
-
-write:
-	for (;;) {
-		fill_buffer(buf.get(), buf_size);
-		auto r = full_write(fd, buf.get(), buf_size, off);
-		if (r == -1) {
-			throw std::system_error{errno, std::system_category()};
-		}
-
-		assert(r == buf_size);
-		off += buf_size;
-		if (off >= n) { break; }
-	}
-	::close(fd);
-}
-
-static void
-write_preallocate_truncate_nocache(const char* path, const std::size_t buf_size, const std::size_t n)
-{
-	auto fd = get_fd(path, O_WRONLY | O_CREAT | O_TRUNC);
-	auto buf = (uint8_t*)nullptr;
-	auto off = off_t{0};
-
-	auto r = ::posix_memalign((void**)&buf, 4096, buf_size);
-	if (r != 0) {
-		throw std::system_error{r, std::system_category()};
-	}
-
-	if (::fcntl(fd, F_NOCACHE, 1) == -1) {
-		throw std::system_error{errno, std::system_category()};
-	}
-
-	struct fstore fs;
-	fs.fst_posmode = F_ALLOCATECONTIG;
-	fs.fst_offset = F_PEOFPOSMODE;
-	fs.fst_length = n;
-	if (::fcntl(fd, F_PREALLOCATE, &fs) == -1) {
-		fs.fst_posmode = F_ALLOCATEALL;
-		if (::fcntl(fd, F_PREALLOCATE, &fs) == -1) {
-			cc::errln("Warning: failed to preallocate space.");
-			goto write;
-		}
-	}
-	if (::ftruncate(fd, n) == -1) {
-		throw std::system_error{errno, std::system_category()};
-	}
-
-write:
-	for (;;) {
-		fill_buffer(buf, buf_size);
-		auto r = full_write(fd, buf, buf_size, off);
-		if (r == -1) {
-			throw std::system_error{errno, std::system_category()};
-		}
-
-		assert(r == buf_size);
-		off += buf_size;
-		if (off >= n) { break; }
-	}
-	::close(fd);
-	std::free(buf);
-}
-
-static void
-write_mmap(const char* path, const std::size_t n)
-{
-	auto fd = get_fd(path, O_RDWR | O_CREAT | O_TRUNC);
-	struct fstore fs;
-	fs.fst_posmode = F_ALLOCATECONTIG;
-	fs.fst_offset = F_PEOFPOSMODE;
-	fs.fst_length = n;
-	if (::fcntl(fd, F_NOCACHE, 1) == -1) {
-		throw std::system_error{errno, std::system_category()};
-	}
+	fs.fst_length = count;
 	if (::fcntl(fd, F_PREALLOCATE, &fs) == -1) {
 		fs.fst_posmode = F_ALLOCATEALL;
 		if (::fcntl(fd, F_PREALLOCATE, &fs) == -1) {
 			throw std::runtime_error{"Warning: failed to preallocate space."};
 		}
 	}
-	if (::ftruncate(fd, n) == -1) {
-		throw std::system_error{errno, std::system_category()};
-	}
+}
 
-write:
-	auto p = (uint8_t*)::mmap(nullptr, n, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
-	if (p == (void*)-1) { throw std::system_error{errno, std::system_category()}; }
-	fill_buffer(p, n);
+static auto
+write_loop(int fd, uint8_t* buf, size_t buf_size, size_t count)
+{
+	for (auto off = off_t{0}; off < off_t(count); off += buf_size) {
+		fill_buffer(buf, buf_size);
+		auto r = full_write(fd, buf, buf_size, off);
+		assert(r == buf_size);
+	}
+}
+
+static void
+write_plain(const char* path, size_t buf_size, size_t count)
+{
+	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC).get();
+	auto buf = std::unique_ptr<uint8_t[]>{new uint8_t[buf_size]};
+	write_loop(fd, buf.get(), buf_size, count);
 	::close(fd);
 }
 
-template <class Function>
-static auto test_function(const Function& f, const char* name)
+static void
+write_nocache(const char* path, size_t buf_size, size_t count)
 {
-	using std::chrono::high_resolution_clock;
-	using std::chrono::duration_cast;
-	using std::chrono::duration;
-	using milliseconds = duration<double, std::ratio<1, 1000>>;
-	auto mean = double{0};
+	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC).get();
+	auto buf = (uint8_t*)nullptr;
 
-	for (auto i = 0; i != num_trials; ++i) {
-		auto t1 = high_resolution_clock::now();
-		f();
-		auto t2 = high_resolution_clock::now();
-		auto ms = duration_cast<milliseconds>(t2 - t1).count();
-		mean += ms;
+	auto r = ::posix_memalign((void**)&buf, 4096, buf_size);
+	if (r != 0) { throw current_system_error(); }
+
+	if (::fcntl(fd, F_NOCACHE, 1) == -1) {
+		throw std::system_error{errno, std::system_category()};
 	}
-	mean /= num_trials;
-	cc::println("Function: $. Mean time: $ ms.", name, mean);
+
+	write_loop(fd, buf, buf_size, count);
+	::close(fd);
+	std::free(buf);
+}
+
+static void
+write_preallocate(const char* path, size_t buf_size, size_t count)
+{
+	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC).get();
+	auto buf = std::unique_ptr<uint8_t[]>{new uint8_t[buf_size]};
+	preallocate(fd, count);
+	write_loop(fd, buf.get(), buf_size, count);
+	::close(fd);
+}
+
+static void
+write_preallocate_truncate(const char* path, size_t buf_size, size_t count)
+{
+	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC).get();
+	auto buf = std::unique_ptr<uint8_t[]>{new uint8_t[buf_size]};
+	preallocate(fd, count);
+	if (::ftruncate(fd, count) == -1) {
+		throw std::system_error{errno, std::system_category()};
+	}
+	write_loop(fd, buf.get(), buf_size, count);
+	::close(fd);
+}
+
+static void
+write_preallocate_truncate_nocache(const char* path, size_t buf_size, size_t count)
+{
+	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC).get();
+	auto buf = (uint8_t*)nullptr;
+
+	auto r = ::posix_memalign((void**)&buf, 4096, buf_size);
+	if (r != 0) {
+		throw std::system_error{r, std::system_category()};
+	}
+
+	if (::fcntl(fd, F_NOCACHE, 1) == -1) {
+		throw std::system_error{errno, std::system_category()};
+	}
+
+	preallocate(fd, count);
+	if (::ftruncate(fd, count) == -1) {
+		throw std::system_error{errno, std::system_category()};
+	}
+
+	write_loop(fd, buf, buf_size, count);
+	::close(fd);
+	std::free(buf);
+}
+
+static void
+write_mmap(const char* path, size_t count)
+{
+	auto fd = safe_open(path, O_RDWR | O_CREAT | O_TRUNC).get();
+	if (::fcntl(fd, F_NOCACHE, 1) == -1) {
+		throw std::system_error{errno, std::system_category()};
+	}
+
+	preallocate(fd, count);
+	if (::ftruncate(fd, count) == -1) {
+		throw std::system_error{errno, std::system_category()};
+	}
+
+	auto p = (uint8_t*)::mmap(nullptr, count, PROT_READ | PROT_WRITE,
+		MAP_PRIVATE, fd, 0);
+	if (p == (void*)-1) { throw current_system_error(); }
+	fill_buffer(p, count);
+	::close(fd);
 }
 
 int main(int argc, char** argv)
 {
+	using namespace std::placeholders;
+
 	if (argc < 2) {
 		cc::errln("Error: too few arguments.");
 		return EXIT_FAILURE;
@@ -278,50 +183,19 @@ int main(int argc, char** argv)
 		return EXIT_FAILURE;
 	}
 
-	auto kb = 1024;
 	auto path = "data/test.dat";
+	auto kb = 1024;
+	auto sizes = {4, 16, 64, 256, 1024, 4096, 16384, 65536};
 
 	// Dummy write to create file.
 	write_plain(path, 4 * kb, count);
 
-	test_function(std::bind(&write_mmap, path, count), "write mmap");
-	test_function(std::bind(&write_plain, path, 4 * kb, count), "plain write 4 Kb");
-	test_function(std::bind(&write_plain, path, 16 * kb, count), "plain write 16 Kb");
-	test_function(std::bind(&write_plain, path, 64 * kb, count), "plain write 64 Kb");
-	test_function(std::bind(&write_plain, path, 256 * kb, count), "plain write 256 Kb");
-	test_function(std::bind(&write_plain, path, 1024 * kb, count), "plain write 1024 Kb");
-	test_function(std::bind(&write_plain, path, 4096 * kb, count), "plain write 4096 Kb");
-	test_function(std::bind(&write_plain, path, 16384 * kb, count), "plain write 16384 Kb");
-	test_function(std::bind(&write_nocache, path, 4 * kb, count), "nocache write 4 Kb");
-	test_function(std::bind(&write_nocache, path, 16 * kb, count), "nocache write 16 Kb");
-	test_function(std::bind(&write_nocache, path, 64 * kb, count), "nocache write 64 Kb");
-	test_function(std::bind(&write_nocache, path, 256 * kb, count), "nocache write 256 Kb");
-	test_function(std::bind(&write_nocache, path, 1024 * kb, count), "nocache write 1024 Kb");
-	test_function(std::bind(&write_nocache, path, 4096 * kb, count), "nocache write 4096 Kb");
-	test_function(std::bind(&write_nocache, path, 16384 * kb, count), "nocache write 16384 Kb");
-	test_function(std::bind(&write_plain, path, 65536 * kb, count), "plain write 65536 Kb");
-	test_function(std::bind(&write_preallocate, path, 4 * kb, count), "preallocate write 4 Kb");
-	test_function(std::bind(&write_preallocate, path, 16 * kb, count), "preallocate write 16 Kb");
-	test_function(std::bind(&write_preallocate, path, 64 * kb, count), "preallocate write 64 Kb");
-	test_function(std::bind(&write_preallocate, path, 256 * kb, count), "preallocate write 256 Kb");
-	test_function(std::bind(&write_preallocate, path, 1024 * kb, count), "preallocate write 1024 Kb");
-	test_function(std::bind(&write_preallocate, path, 4096 * kb, count), "preallocate write 4096 Kb");
-	test_function(std::bind(&write_preallocate, path, 16384 * kb, count), "preallocate write 16384 Kb");
-	test_function(std::bind(&write_preallocate, path, 65536 * kb, count), "preallocate write 65536 Kb");
-	test_function(std::bind(&write_preallocate_truncate, path, 4 * kb, count), "preallocate truncate write 4 Kb");
-	test_function(std::bind(&write_preallocate_truncate, path, 16 * kb, count), "preallocate truncate write 16 Kb");
-	test_function(std::bind(&write_preallocate_truncate, path, 64 * kb, count), "preallocate truncate write 64 Kb");
-	test_function(std::bind(&write_preallocate_truncate, path, 256 * kb, count), "preallocate truncate write 256 Kb");
-	test_function(std::bind(&write_preallocate_truncate, path, 1024 * kb, count), "preallocate truncate write 1024 Kb");
-	test_function(std::bind(&write_preallocate_truncate, path, 4096 * kb, count), "preallocate truncate write 4096 Kb");
-	test_function(std::bind(&write_preallocate_truncate, path, 16384 * kb, count), "preallocate truncate write 16384 Kb");
-	test_function(std::bind(&write_preallocate_truncate, path, 65536 * kb, count), "preallocate truncate write 65536 Kb");
-	test_function(std::bind(&write_preallocate_truncate_nocache, path, 4 * kb, count), "preallocate truncate nocache write 4 Kb");
-	test_function(std::bind(&write_preallocate_truncate_nocache, path, 16 * kb, count), "preallocate truncate nocache write 16 Kb");
-	test_function(std::bind(&write_preallocate_truncate_nocache, path, 64 * kb, count), "preallocate truncate nocache write 64 Kb");
-	test_function(std::bind(&write_preallocate_truncate_nocache, path, 256 * kb, count), "preallocate truncate nocache write 256 Kb");
-	test_function(std::bind(&write_preallocate_truncate_nocache, path, 1024 * kb, count), "preallocate truncate nocache write 1024 Kb");
-	test_function(std::bind(&write_preallocate_truncate_nocache, path, 4096 * kb, count), "preallocate truncate nocache write 4096 Kb");
-	test_function(std::bind(&write_preallocate_truncate_nocache, path, 16384 * kb, count), "preallocate truncate nocache write 16384 Kb");
-	test_function(std::bind(&write_preallocate_truncate_nocache, path, 65536 * kb, count), "preallocate truncate nocache write 65536 Kb");
+	std::printf("%s, %s, %s\n", "Method", "Mean (ms)", "Stddev (ms)");
+	std::fflush(stdout);
+	test_write_range(std::bind(write_plain, _1, _2, count), path, "write_plain", sizes, count);
+	test_write_range(std::bind(write_nocache, _1, _2, count), path, "write_nocache", sizes, count);
+	test_write_range(std::bind(write_preallocate, _1, _2, count), path, "write_preallocate", sizes, count);
+	test_write_range(std::bind(write_preallocate_truncate, _1, _2, count), path, "write_preallocate_truncate", sizes, count);
+	test_write_range(std::bind(write_preallocate_truncate_nocache, _1, _2, count), path, "write_preallocate_truncate_nocache", sizes, count);
+	test_write(std::bind(write_mmap, path, count), path);
 }

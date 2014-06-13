@@ -1,5 +1,5 @@
 /*
-** File Name:	common.hpp
+** File Name:	io_common.hpp
 ** Author:	Aditya Ramesh
 ** Date:	06/11/2014
 ** Contact:	_@adityaramesh.com
@@ -106,7 +106,7 @@ file_size(int fd)
 
 #if PLATFORM_KERNEL == PLATFORM_KERNEL_XNU
 
-static cc::expected<void>
+static inline cc::expected<void>
 purge_cache()
 {
 	if (std::system("purge") == -1) {
