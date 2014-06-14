@@ -1,5 +1,0 @@
-Method, Mean (ms), Stddev (ms)
-read_plain 56 Kb, 32.871791, 1.112421
-read_nocache 56 Kb, 71.458501, 3.213362
-read_readahead 56 Kb, 32.839658, 1.211810
-read_rdadvise 56 Kb, 20.099532, 0.771336

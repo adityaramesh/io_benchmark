@@ -4,5 +4,5 @@ sizes=(8 16 24 32 40 48 56 64 80 96 112 128 160 192 224 256 320 384 448 512 640 
 
 set -x
 for s in ${sizes[@]}; do
-	./out/read_benchmark.run data/test_$s.bin | tee results/read_$s.csv
+	./out/write_benchmark.run $[s * 2**20] | tee results/write_$s.csv
 done
