@@ -8,9 +8,12 @@
 #ifndef ZD477B76C_977A_4861_963D_3C448BD98F34
 #define ZD477B76C_977A_4861_963D_3C448BD98F34
 
+#include <array>
 #include <cstdio>
 #include <chrono>
+#include <cmath>
 #include <io_common.hpp>
+#include <boost/range/numeric.hpp>
 
 /*
 ** The `*_read` and `*_write` functions have not been abstracted into one
@@ -116,6 +119,27 @@ static void test_write_range(
 		if (bs * kb <= count) {
 			std::snprintf(buf.data(), 64, "%s %d Kb", name, bs);
 			test_write(std::bind(func, path, bs * kb), buf.data());
+		}
+	}
+}
+
+template <class Function, class Range>
+static void test_copy_range(
+	const Function& func,
+	const char* src,
+	const char* dst,
+	const char* name,
+	const Range& range,
+	off_t count
+)
+{
+	static constexpr auto kb = 1024;
+	auto buf = std::array<char, 64>{};
+
+	for (const auto& bs : range) {
+		if (bs * kb <= count) {
+			std::snprintf(buf.data(), 64, "%s %d Kb", name, bs);
+			test_write(std::bind(func, src, dst, bs * kb), buf.data());
 		}
 	}
 }

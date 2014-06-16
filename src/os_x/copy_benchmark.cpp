@@ -20,230 +20,262 @@
 #include <ccbase/format.hpp>
 #include <ccbase/platform.hpp>
 
+#include <configuration.hpp>
+#include <io_common.hpp>
+#include <test.hpp>
+
 #if PLATFORM_KERNEL == PLATFORM_KERNEL_XNU
-	#include <cstdlib>
-	#include <fcntl.h>
-	#include <unistd.h>
 	#include <sys/mman.h>
-	#include <sys/stat.h>
-	#include <sys/types.h>
 #else
 	#error "Unsupported kernel."
 #endif
 
-// Number of times to run each IO function.
-static constexpr auto num_trials = 5;
-// Special byte value used to verify correctness.
-static constexpr auto needle = uint8_t{0xFF};
-
 // mmap (advise, prealloc + truncate)
 
-static off_t
-file_size(const int fd)
+static void
+preallocate(int fd, size_t count)
 {
-	struct stat buf;
-	auto r = ::fstat(fd, &buf);
-	if (r == -1) {
-		throw std::system_error{errno, std::system_category()};
+	struct fstore fs;
+	fs.fst_posmode = F_ALLOCATECONTIG;
+	fs.fst_offset = F_PEOFPOSMODE;
+	fs.fst_length = count;
+	if (::fcntl(fd, F_PREALLOCATE, &fs) == -1) {
+		fs.fst_posmode = F_ALLOCATEALL;
+		if (::fcntl(fd, F_PREALLOCATE, &fs) == -1) {
+			throw std::runtime_error{"Warning: failed to preallocate space."};
+		}
 	}
-	return buf.st_size;
 }
 
 static void
-purge_cache()
+copy_loop(int in, int out, uint8_t* buf, size_t buf_size)
 {
-	if (std::system("purge") == -1) {
-		throw std::runtime_error{"Failed to purge cache."};
-	}
-}
-
-static ssize_t
-full_read(int fd, void* buf, size_t count, off_t offset)
-{
-	auto c = size_t{0};
-	do {
-		auto r = ::pread(fd, (uint8_t*)buf + c, count - c, offset + c);
-		if (r > 0) {
-			c += r;
-		}
-		else if (r == 0) {
-			return c;
-		}
-		else {
-			if (errno == EINTR) { continue; }
-			return r;
-		}
-	}
-	while (c < count);
-	return c;
-}
-
-static ssize_t
-full_write(int fd, void* buf, std::size_t count, off_t offset)
-{
-	auto c = size_t{0};
-	do {
-		auto r = ::pwrite(fd, (uint8_t*)buf + c, count - c, offset + c);
-		if (r > 0) {
-			c += r;
-		}
-		else if (r == 0) {
-			return c;
-		}
-		else {
-			if (errno == EINTR) { continue; }
-			return r;
-		}
-	}
-	while (c < count);
-	return c;
-}
-
-static auto
-get_fd(const char* path, int flags)
-{
-	auto fd = ::open(path, flags, S_IRUSR | S_IWUSR);
-	if (fd == -1) {
-		throw std::system_error{errno, std::system_category()};
-	}
-	return fd;
-}
-
-static auto
-simple_copy(const char* src, const char* dst, const std::size_t buf_size)
-{
-	auto in = get_fd(src, O_RDONLY);
-	auto out = get_fd(dst, O_RDWR | O_CREAT | O_TRUNC);
-	auto buf = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
 	auto off = off_t{0};
-
 	for (;;) {
-		auto r = full_read(in, buf.get(), buf_size, off);
-		if (r == 0) {
-			break;
-		}
-		else if (r == -1) {
-			throw std::system_error{errno, std::system_category()};
-		}
-		assert(r == buf_size);
-
-		r = full_write(out, buf.get(), buf_size, off);
-		if (r == -1) {
-			throw std::system_error{errno, std::system_category()};
-		}
-		assert(r == buf_size);
+		auto r = full_read(in, buf, buf_size, off).get();
+		auto s = full_write(out, buf, r, off).get();
+		assert(r == s);
+		if (size_t(r) < buf_size) { return; }
 		off += buf_size;
 	}
+}
+
+static void
+write_worker(
+	int fd,
+	uint8_t* buf1,
+	uint8_t* buf2,
+	size_t buf_size,
+	std::atomic<int>& cv1,
+	std::atomic<int>& cv2
+)
+{
+	auto r = int{};
+	auto s = int{};
+	auto off = off_t{0};
+	auto buf1_active = false;
+
+	for (;;) {
+		if (buf1_active) {
+			while (cv2.load(std::memory_order_acquire) == -1) {}
+			s = cv2.load(std::memory_order_relaxed);
+			r = full_write(fd, buf2, s, off).get();
+			if (size_t(s) < buf_size) { return; }
+			cv2.store(-1, std::memory_order_release);
+		}
+		else {
+			while (cv1.load(std::memory_order_acquire) == -1) {}
+			s = cv1.load(std::memory_order_relaxed);
+			r = full_write(fd, buf1, s, off).get();
+			if (size_t(s) < buf_size) { return; }
+			cv1.store(-1, std::memory_order_release);
+		}
+		assert(r == s);
+		buf1_active = !buf1_active;
+		off += s;
+	}
+}
+
+/*
+** Note: this ends up being slower than other methods, because disk requests are
+** serialized anyway.
+*/
+static void
+async_copy_loop(
+	int in,
+	int out,
+	uint8_t* buf1,
+	uint8_t* buf2,
+	size_t buf_size
+)
+{
+	auto r = full_read(in, buf1, buf_size, 0).get();
+	if (size_t(r) < buf_size) {
+		auto s = full_write(out, buf1, r, 0).get();
+		assert(r == s);
+		return;
+	}
+
+	std::atomic<int> cv1(buf_size);
+	std::atomic<int> cv2{-1};
+	auto off = off_t(buf_size);
+	auto buf1_active = false;
+	auto t = std::thread(write_worker, out, buf1, buf2, buf_size,
+		std::ref(cv1), std::ref(cv2));
+
+	for (;;) {
+		if (buf1_active) {
+			while (cv1.load(std::memory_order_acquire) != -1) {}
+			r = full_read(in, buf1, buf_size, off).get();
+			cv1.store(r, std::memory_order_release);
+			if (size_t(r) < buf_size) { goto exit; }
+		}
+		else {
+			while (cv2.load(std::memory_order_acquire) != -1) {}
+			r = full_read(in, buf2, buf_size, off).get();
+			cv2.store(r, std::memory_order_release);
+			if (size_t(r) < buf_size) { goto exit; }
+		}
+		buf1_active = !buf1_active;
+		off += buf_size;
+	}
+exit:
+	t.join();
+}
+
+static auto
+copy_plain(const char* src, const char* dst, size_t buf_size)
+{
+	auto in = safe_open(src, O_RDONLY).get();
+	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC).get();
+	auto buf = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
+	copy_loop(in, out, buf.get(), buf_size);
 	::close(in);
 	::close(out);
 }
 
 static auto
-copy_nocache(const char* src, const char* dst, const std::size_t buf_size)
+copy_nocache(const char* src, const char* dst, size_t buf_size)
 {
-	auto in = get_fd(src, O_RDONLY);
-	auto out = get_fd(dst, O_RDWR | O_CREAT | O_TRUNC);
+	auto in = safe_open(src, O_RDONLY).get();
+	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC).get();
 	auto buf = (uint8_t*)nullptr;
-	auto off = off_t{0};
 
 	auto r = ::posix_memalign((void**)&buf, 4096, buf_size);
 	if (r != 0) {
-		throw std::system_error{r, std::system_category()};
+		throw current_system_error();
+	}
+	if (::fcntl(in, F_NOCACHE, 1) == -1) {
+		throw current_system_error();
+	}
+	if (::fcntl(out, F_NOCACHE, 1) == -1) {
+		throw current_system_error();
 	}
 
-	for (;;) {
-		auto r = full_read(in, buf, buf_size, off);
-		if (r == 0) {
-			break;
-		}
-		else if (r == -1) {
-			throw std::system_error{errno, std::system_category()};
-		}
-		assert(r == buf_size);
-
-		r = full_write(out, buf, buf_size, off);
-		if (r == -1) {
-			throw std::system_error{errno, std::system_category()};
-		}
-		assert(r == buf_size);
-		off += buf_size;
-	}
+	copy_loop(in, out, buf, buf_size);
 	::close(in);
 	::close(out);
 	std::free(buf);
 }
 
 static auto
-copy_advise_preallocate(const char* src, const char* dst, const std::size_t buf_size)
+copy_rdahead_preallocate(const char* src, const char* dst, size_t buf_size)
 {
-	auto in = get_fd(src, O_RDONLY);
-	auto out = get_fd(dst, O_RDWR | O_CREAT | O_TRUNC);
-	auto fsz = file_size(in);
-	auto buf = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
-	auto off = off_t{0};
+	auto in = safe_open(src, O_RDONLY).get();
+	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC).get();
+	auto buf = (uint8_t*)nullptr;
+
+	auto r = ::posix_memalign((void**)&buf, 4096, buf_size);
+	if (r != 0) {
+		throw current_system_error();
+	}
+	if (::fcntl(in, F_RDAHEAD, 1) == -1) {
+		throw std::system_error{errno, std::system_category()};
+	}
+
+	//preallocate(out, fs);
+	//if (::fcntl(out, F_NOCACHE, 1) == -1) {
+	//	throw current_system_error();
+	//}
+	//if (::ftruncate(out, fs) == -1) {
+	//	throw current_system_error();
+	//}
+
+	copy_loop(in, out, buf, buf_size);
+	::close(in);
+	::close(out);
+	std::free(buf);
+}
+
+static auto
+copy_rdadvise_preallocate(const char* src, const char* dst, size_t buf_size)
+{
+	auto in = safe_open(src, O_RDONLY).get();
+	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC).get();
+	auto fs = file_size(in).get();
+	auto buf = (uint8_t*)nullptr;
+
+	auto r = ::posix_memalign((void**)&buf, 4096, buf_size);
+	if (r != 0) {
+		throw current_system_error();
+	}
 
 	struct radvisory rd;
 	rd.ra_offset = 0;
-	rd.ra_count = fsz;
+	rd.ra_count = fs;
 	if (::fcntl(in, F_RDADVISE, &rd) == -1) {
-		throw std::system_error{errno, std::system_category()};
+		throw current_system_error();
 	}
 
-	struct fstore fs;
-	fs.fst_posmode = F_ALLOCATECONTIG;
-	fs.fst_offset = F_PEOFPOSMODE;
-	fs.fst_length = fsz;
-	if (::fcntl(out, F_PREALLOCATE, &fs) == -1) {
-		fs.fst_posmode = F_ALLOCATEALL;
-		if (::fcntl(out, F_PREALLOCATE, &fs) == -1) {
-			cc::errln("Warning: failed to preallocate space.");
-			goto copy;
-		}
-	}
-	if (::ftruncate(out, fsz) == -1) {
-		throw std::system_error{errno, std::system_category()};
-	}
-copy:
-	for (;;) {
-		auto r = full_read(in, buf.get(), buf_size, off);
-		if (r == 0) {
-			break;
-		}
-		else if (r == -1) {
-			throw std::system_error{errno, std::system_category()};
-		}
-		assert(r == buf_size);
+	//preallocate(out, fs);
+	//if (::fcntl(out, F_NOCACHE, 1) == -1) {
+	//	throw current_system_error();
+	//}
+	//if (::ftruncate(out, fs) == -1) {
+	//	throw current_system_error();
+	//}
 
-		r = full_write(out, buf.get(), buf_size, off);
-		if (r == -1) {
-			throw std::system_error{errno, std::system_category()};
-		}
-		assert(r == buf_size);
-		off += buf_size;
-	}
+	copy_loop(in, out, buf, buf_size);
 	::close(in);
 	::close(out);
 }
 
-template <class Function>
-static auto test_function(const Function& f, const char* name)
+static auto
+copy_async(const char* src, const char* dst, size_t buf_size)
 {
-	using std::chrono::high_resolution_clock;
-	using std::chrono::duration_cast;
-	using std::chrono::duration;
-	using milliseconds = duration<double, std::ratio<1, 1000>>;
-	auto mean = double{0};
+	auto in = safe_open(src, O_RDONLY).get();
+	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC).get();
+	auto buf1 = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
+	auto buf2 = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
+	async_copy_loop(in, out, buf1.get(), buf2.get(), buf_size);
+	::close(in);
+	::close(out);
+}
 
-	for (auto i = 0; i != num_trials; ++i) {
-		auto t1 = high_resolution_clock::now();
-		f();
-		auto t2 = high_resolution_clock::now();
-		auto ms = duration_cast<milliseconds>(t2 - t1).count();
-		mean += ms;
-		purge_cache();
+static auto
+copy_mmap(const char* src, const char* dst)
+{
+	auto in = safe_open(src, O_RDONLY).get();
+	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC).get();
+	auto fs = file_size(in).get();
+
+	/*
+	** Strangely, copying is fastest when we use `F_NOCACHE` for reading but
+	** not for writing. I do not know why. The `F_RDAHEAD` and `F_RDADVISE`
+	** flags do not help.
+	*/
+	if (::fcntl(in, F_NOCACHE, 1) == -1) {
+		throw current_system_error();
 	}
-	mean /= num_trials;
-	cc::println("Function: $. Mean time: $ ms.", name, mean);
+
+	preallocate(out, fs);
+	if (::ftruncate(out, fs) == -1) {
+		throw current_system_error();
+	}
+
+	auto src_buf = (uint8_t*)::mmap(nullptr, fs, PROT_READ, MAP_PRIVATE, in, 0);
+	auto dst_buf = (uint8_t*)::mmap(nullptr, fs, PROT_READ | PROT_WRITE, MAP_PRIVATE, out, 0);
+	std::copy(src_buf, src_buf + fs, dst_buf);
 }
 
 int main(int argc, char** argv)
@@ -257,35 +289,19 @@ int main(int argc, char** argv)
 		return EXIT_FAILURE;
 	}
 
-	auto kb = 1024;
 	auto src = argv[1];
 	auto dst = argv[2];
+	auto sizes = {4, 8, 12, 16, 24, 32, 40, 48, 56, 64, 256, 1024, 4096, 16384, 65536, 262144};
 
-	test_function(std::bind(&simple_copy, src, dst, 4 * kb), "simple copy 4 Kb");
-	test_function(std::bind(&simple_copy, src, dst, 16 * kb), "simple copy 16 Kb");
-	test_function(std::bind(&simple_copy, src, dst, 64 * kb), "simple copy 64 Kb");
-	test_function(std::bind(&simple_copy, src, dst, 256 * kb), "simple copy 256 Kb");
-	test_function(std::bind(&simple_copy, src, dst, 1024 * kb), "simple copy 1024 Kb");
-	test_function(std::bind(&simple_copy, src, dst, 4096 * kb), "simple copy 4096 Kb");
-	test_function(std::bind(&simple_copy, src, dst, 16384 * kb), "simple copy 16384 Kb");
-	test_function(std::bind(&simple_copy, src, dst, 65536 * kb), "simple copy 65536 Kb");
-	//test_function(std::bind(&simple_copy, src, dst, 262144 * kb), "simple copy 262144 Kb");
-	test_function(std::bind(&copy_nocache, src, dst, 4 * kb), "copy nocache 4 Kb");
-	test_function(std::bind(&copy_nocache, src, dst, 16 * kb), "copy nocache 16 Kb");
-	test_function(std::bind(&copy_nocache, src, dst, 64 * kb), "copy nocache 64 Kb");
-	test_function(std::bind(&copy_nocache, src, dst, 256 * kb), "copy nocache 256 Kb");
-	test_function(std::bind(&copy_nocache, src, dst, 1024 * kb), "copy nocache 1024 Kb");
-	test_function(std::bind(&copy_nocache, src, dst, 4096 * kb), "copy nocache 4096 Kb");
-	test_function(std::bind(&copy_nocache, src, dst, 16384 * kb), "copy nocache 16384 Kb");
-	test_function(std::bind(&copy_nocache, src, dst, 65536 * kb), "copy nocache 65536 Kb");
-	//test_function(std::bind(&copy_nocache, src, dst, 262144 * kb), "copy nocache 262144 Kb");
-	test_function(std::bind(&copy_advise_preallocate, src, dst, 4 * kb), "copy advise preallocate 4 Kb");
-	test_function(std::bind(&copy_advise_preallocate, src, dst, 16 * kb), "copy advise preallocate 16 Kb");
-	test_function(std::bind(&copy_advise_preallocate, src, dst, 64 * kb), "copy advise preallocate 64 Kb");
-	test_function(std::bind(&copy_advise_preallocate, src, dst, 256 * kb), "copy advise preallocate 256 Kb");
-	test_function(std::bind(&copy_advise_preallocate, src, dst, 1024 * kb), "copy advise preallocate 1024 Kb");
-	test_function(std::bind(&copy_advise_preallocate, src, dst, 4096 * kb), "copy advise preallocate 4096 Kb");
-	test_function(std::bind(&copy_advise_preallocate, src, dst, 16384 * kb), "copy advise preallocate 16384 Kb");
-	test_function(std::bind(&copy_advise_preallocate, src, dst, 65536 * kb), "copy advise preallocate 65536 Kb");
-	//test_function(std::bind(&copy_advise_preallocate, src, dst, 262144 * kb), "copy advise preallocate 262144 Kb");
+	auto fd = safe_open(src, O_RDONLY).get();
+	auto fs = file_size(fd).get();
+	safe_close(fd).get();
+
+	std::printf("%s, %s, %s\n", "Method", "Mean (ms)", "Stddev (ms)");
+	std::fflush(stdout);
+	test_copy_range(copy_plain, src, dst, "copy_plain", sizes, fs);
+	test_copy_range(copy_nocache, src, dst, "copy_nocache", sizes, fs);
+	test_copy_range(copy_rdahead_preallocate, src, dst, "copy_rdahead_preallocate", sizes, fs);
+	test_copy_range(copy_rdadvise_preallocate, src, dst, "copy_rdadvise_preallocate", sizes, fs);
+	test_write(std::bind(copy_mmap, src, dst), "copy_mmap");
 }

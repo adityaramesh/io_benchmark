@@ -8,23 +8,65 @@
 ** - http://blog.plenz.com/2014-04/so-you-want-to-write-to-a-file-real-fast.html
 ** - https://blog.mozilla.org/tglek/2010/09/09/help-wanted-does-fcntlf_preallocate-work-as-advertised-on-osx/
 **
-** - Best results: preallocate + truncate + 256 Kb.
+** - Scheme for OS X:
+**   - Synchronous:
+**     - 4096 KB
+**   - Asynchronous:
+**     - Below 56 MB:
+**       - 256 KB
+**     - 56 MB and above:
+**       - 1024 KB
+**
+** - Best results for OS X:
+**   - 8 MB:
+**     - 4096 KB
+**     - 256 KB
+**   - 16 MB:
+**     - 4096 KB
+**     - 256 KB
+**   - 24 MB:
+**     - 4096 KB
+**     - 256 KB
+**   - 32 MB:
+**     - 16384 KB
+**     - 256 KB
+**   - 64 MB:
+**     - 4096 KB
+**     - 256 KB, 1024 KB
+**   - 48 MB:
+**     - 16384 KB
+**     - 256 KB, 1024 KB
+**   - 56 MB:
+**     - 4096 KB
+**     - 1024 KB
+**   - 64 MB:
+**     - 16384 KB
+**     - 256 KB, 1024 KB
+**   - 80 MB:
+**     - 16384 KB
+**     - 1024 KB
+**   - 96 MB:
+**     - 907 KB
+**     - 4096 KB, 1024 KB
+**   - 112 MB:
+**     - 4096 KB
+**     - 1024 KB
+**   - 128 MB:
+**     - 4096 KB, 16384 KB
+**     - 1024 KB, 4096 KB
 */
 
 #include <algorithm>
-#include <array>
 #include <atomic>
 #include <cassert>
 #include <cstdlib>
 #include <cstdint>
-#include <cmath>
 #include <functional>
 #include <memory>
 #include <thread>
 #include <random>
 #include <ratio>
 #include <ccbase/format.hpp>
-#include <boost/range/numeric.hpp>
 
 #include <configuration.hpp>
 #include <io_common.hpp>
@@ -281,7 +323,7 @@ int main(int argc, char** argv)
 		return EXIT_FAILURE;
 	}
 
-	auto path = "data/test.dat";
+	auto path = "data/test.bin";
 	auto kb = 1024;
 	auto sizes = {4, 8, 12, 16, 24, 32, 40, 48, 56, 64, 256, 1024, 4096, 16384, 65536, 262144};
 

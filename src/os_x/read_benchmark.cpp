@@ -15,7 +15,7 @@
 **     - Under 128 MB: read_rdadvise 1024 KB
 **     - 128 MB and above: read_rdahead 4096 KB
 **
-** - Best results:
+** - Best results for OS X:
 **   - 8 MB:
 **     - read_rdadvise 32 KB -- 256 KB
 **   - 16 MB:
@@ -63,18 +63,15 @@
 */
 
 #include <algorithm>
-#include <array>
 #include <atomic>
 #include <cassert>
 #include <cstdlib>
 #include <cstdint>
-#include <cmath>
 #include <functional>
 #include <memory>
 #include <thread>
 #include <ratio>
 #include <ccbase/format.hpp>
-#include <boost/range/numeric.hpp>
 
 #include <configuration.hpp>
 #include <io_common.hpp>
