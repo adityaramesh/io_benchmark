@@ -4,7 +4,7 @@
 ** Date:	06/03/2014
 ** Contact:	_@adityaramesh.com
 **
-** - Best results: advise + preallocate + truncate + 64 Kb.
+** - Best results: copy_mmap
 */
 
 #include <algorithm>
@@ -274,7 +274,7 @@ copy_mmap(const char* src, const char* dst)
 	}
 
 	auto src_buf = (uint8_t*)::mmap(nullptr, fs, PROT_READ, MAP_PRIVATE, in, 0);
-	auto dst_buf = (uint8_t*)::mmap(nullptr, fs, PROT_READ | PROT_WRITE, MAP_PRIVATE, out, 0);
+	auto dst_buf = (uint8_t*)::mmap(nullptr, fs, PROT_WRITE, MAP_PRIVATE, out, 0);
 	std::copy(src_buf, src_buf + fs, dst_buf);
 }
 
