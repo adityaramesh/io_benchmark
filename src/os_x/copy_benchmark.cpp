@@ -11,12 +11,8 @@
 #include <cassert>
 #include <cstdlib>
 #include <cstdint>
-#include <chrono>
 #include <functional>
 #include <memory>
-#include <ratio>
-#include <system_error>
-#include <thread>
 #include <ccbase/format.hpp>
 #include <ccbase/platform.hpp>
 
@@ -29,14 +25,13 @@ copy_nocache(const char* src, const char* dst, size_t buf_size)
 {
 	auto in = safe_open(src, O_RDONLY).get();
 	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC).get();
-	auto buf = allocate_aligned(4096, buf_size).get();
+	auto buf = allocate_aligned(4096, buf_size);
 	disable_cache(in);
 	disable_cache(out);
 
-	copy_loop(in, out, buf, buf_size);
+	copy_loop(in, out, buf.get(), buf_size);
 	::close(in);
 	::close(out);
-	std::free(buf);
 }
 
 static auto
@@ -44,7 +39,7 @@ copy_rdahead_preallocate(const char* src, const char* dst, size_t buf_size)
 {
 	auto in = safe_open(src, O_RDONLY).get();
 	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC).get();
-	auto buf = allocate_aligned(4096, buf_size).get();
+	auto buf = allocate_aligned(4096, buf_size);
 	enable_rdahead(in);
 
 	//preallocate(out, fs);
@@ -55,10 +50,9 @@ copy_rdahead_preallocate(const char* src, const char* dst, size_t buf_size)
 	//	throw current_system_error();
 	//}
 
-	copy_loop(in, out, buf, buf_size);
+	copy_loop(in, out, buf.get(), buf_size);
 	::close(in);
 	::close(out);
-	std::free(buf);
 }
 
 static auto
@@ -67,7 +61,7 @@ copy_rdadvise_preallocate(const char* src, const char* dst, size_t buf_size)
 	auto in = safe_open(src, O_RDONLY).get();
 	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC).get();
 	auto fs = file_size(in).get();
-	auto buf = allocate_aligned(4096, buf_size).get();
+	auto buf = allocate_aligned(4096, buf_size);
 	enable_rdadvise(in, fs);
 
 	//preallocate(out, fs);
@@ -78,7 +72,7 @@ copy_rdadvise_preallocate(const char* src, const char* dst, size_t buf_size)
 	//	throw current_system_error();
 	//}
 
-	copy_loop(in, out, buf, buf_size);
+	copy_loop(in, out, buf.get(), buf_size);
 	::close(in);
 	::close(out);
 }

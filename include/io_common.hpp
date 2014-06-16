@@ -191,4 +191,24 @@ truncate(int fd, off_t fs)
 
 #endif
 
+#if PLATFORM_KERNEL == PLATFORM_KERNEL_LINUX
+
+static inline cc::expected<void>
+purge_cache()
+{
+	if (std::system("sync; echo 3 > /proc/sys/vm/drop_caches") == -1) {
+		throw std::runtime_error{"Failed to purge cache."};
+	}
+	return true;
+}
+
+static void
+fadvise_sequential(int fd, off_t fs)
+{
+	::posix_fadvise(fd, 0, fs, POSIX_FADV_WILLNEED);
+	::posix_fadvise(fd, 0, fs, POSIX_FADV_SEQUENTIAL);
+}
+
+#endif
+
 #endif

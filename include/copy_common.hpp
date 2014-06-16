@@ -8,6 +8,8 @@
 #ifndef ZD867F4DE_A8CC_4B2A_807C_F44862C521A4
 #define ZD867F4DE_A8CC_4B2A_807C_F44862C521A4
 
+#include <atomic>
+#include <thread>
 #include <io_common.hpp>
 #include <configuration.hpp>
 

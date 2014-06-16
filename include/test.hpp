@@ -12,6 +12,7 @@
 #include <cstdio>
 #include <chrono>
 #include <cmath>
+#include <ratio>
 #include <io_common.hpp>
 #include <boost/range/numeric.hpp>
 

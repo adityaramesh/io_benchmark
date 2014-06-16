@@ -8,14 +8,143 @@
 // read plain
 // read direct
 // read fadvise
-// read aio plain
 // read aio direct
 // read aio fadvise
-// read async plain
 // read async direct
 // read async fadvise
 // mmap plain
-// mmap direct
 // mmap fadvise
 
+#include <algorithm>
+#include <cassert>
+#include <cstdlib>
+#include <cstdint>
+#include <functional>
+#include <memory>
+#include <ccbase/format.hpp>
 
+#include <read_common.hpp>
+#include <test.hpp>
+
+static auto
+read_direct(const char* path, size_t buf_size)
+{
+	auto fd = safe_open(path, O_RDONLY | O_DIRECT | O_NOATIME).get();
+	auto buf = allocate_aligned(4096, buf_size);
+	disable_cache(fd);
+
+	auto count = read_loop(fd, buf.get(), buf_size);
+	::close(fd);
+	return count;
+}
+
+static auto
+read_fadvise(const char* path, size_t buf_size)
+{
+	auto fd = safe_open(path, O_RDONLY | O_NOATIME).get();
+	auto fs = file_size(fd).get();
+	auto buf = std::unique_ptr<uint8_t[]>{buf_size};
+	fadvise_sequential(fd, fs);
+
+	auto count = read_loop(fd, buf.get(), buf_size);
+	::close(fd);
+	return count;
+}
+
+static auto
+read_aio_direct(const char* path, size_t buf_size)
+{
+	auto fd = safe_open(path, O_RDONLY | O_DIRECT | O_NOATIME).get();
+	auto buf1 = std::unique_ptr<uint8_t[]>{buf_size};
+	auto buf2 = std::unique_ptr<uint8_t[]>{buf_size};
+
+	auto count = read_aio_loop(fd, buf1.get(), buf2.get(), buf_size);
+	::close(fd);
+	return count;
+}
+
+static auto
+read_aio_fadvise(const char* path, size_t buf_size)
+{
+	auto fd = safe_open(path, O_RDONLY | O_NOATIME).get();
+	auto fs = file_size(fd).get();
+	auto buf1 = allocate_aligned(4096, buf_size);
+	auto buf2 = allocate_aligned(4096, buf_size);
+	fadvise_sequential(fd, fs);
+
+	auto count = read_aio_loop(fd, buf1.get(), buf2.get(), buf_size);
+	::close(fd);
+	return count;
+}
+
+static auto
+read_async_direct(const char* path, size_t buf_size)
+{
+	auto fd = safe_open(path, O_RDONLY | O_DIRECT | O_NOATIME).get();
+	auto buf1 = std::unique_ptr<uint8_t[]>{buf_size};
+	auto buf2 = std::unique_ptr<uint8_t[]>{buf_size};
+
+	auto count = read_async_loop(fd, buf1.get(), buf2.get(), buf_size);
+	::close(fd);
+	return count;
+}
+
+static auto
+read_async_fadvise(const char* path, size_t buf_size)
+{
+	auto fd = safe_open(path, O_RDONLY | O_NOATIME).get();
+	auto fs = file_size(fd).get();
+	auto buf1 = allocate_aligned(4096, buf_size);
+	auto buf2 = allocate_aligned(4096, buf_size);
+	fadvise_sequential(fd, fs);
+
+	auto count = read_async_loop(fd, buf1.get(), buf2.get(), buf_size);
+	::close(fd);
+	return count;
+}
+
+static auto
+mmap_fadvise(const char* path)
+{
+	auto fd = safe_open(path, O_RDONLY | O_NOATIME).get();
+	auto fs = file_size(fd).get();
+	fadvise_sequential(fd, fs);
+
+	auto p = (uint8_t*)::mmap(nullptr, fs, PROT_READ, MAP_PRIVATE, fd, 0);
+	auto count = std::count_if(p, p + fs, [](auto x) { return x == needle; });
+	::munmap(p, fs);
+	return count;
+}
+
+int main(int argc, char** argv)
+{
+	if (argc < 2) {
+		cc::errln("Error: too few arguments.");
+		return EXIT_FAILURE;
+	}
+	else if (argc > 2) {
+		cc::errln("Error: too many arguments.");
+		return EXIT_FAILURE;
+	}
+
+	auto path = argv[1];
+	auto fd = safe_open(path, O_RDONLY).get();
+	auto fs = file_size(fd).get();
+	safe_close(fd).get();
+
+	auto count = check(path);
+	auto sizes = {4, 8, 12, 16, 24, 32, 40, 48, 56, 64, 256, 1024, 4096, 16384, 65536, 262144};
+	purge_cache().get();
+
+	std::printf("%s, %s, %s\n", "Method", "Mean (ms)", "Stddev (ms)");
+	std::fflush(stdout);
+	test_read_range(read_plain, path, "read_plain", sizes, fs, count);
+	test_read_range(read_direct, path, "read_direct", sizes, fs, count);
+	test_read_range(read_fadvise, path, "read_fadvise", sizes, fs, count);
+	test_read_range(read_aio_direct, path, "read_aio_direct", sizes, fs, count);
+	test_read_range(read_aio_fadvise, path, "read_aio_fadvise", sizes, fs, count);
+	test_read_range(read_async_direct, path, "read_async_direct", sizes, fs, count);
+	test_read_range(read_async_fadvise, path, "read_async_fadvise", sizes, fs, count);
+	test_read(std::bind(mmap_plain, path), "mmap_plain", count);
+	test_read(std::bind(mmap_fadvise, path), "mmap_fadvise", count);
+}

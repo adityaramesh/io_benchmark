@@ -4,10 +4,6 @@
 ** Date:	06/04/2014
 ** Contact:	_@adityaramesh.com
 **
-** - https://github.com/Feh/write-patterns
-** - http://blog.plenz.com/2014-04/so-you-want-to-write-to-a-file-real-fast.html
-** - https://blog.mozilla.org/tglek/2010/09/09/help-wanted-does-fcntlf_preallocate-work-as-advertised-on-osx/
-**
 ** - Scheme for OS X:
 **   - Synchronous:
 **     - 4096 KB
@@ -57,15 +53,12 @@
 */
 
 #include <algorithm>
-#include <atomic>
 #include <cassert>
 #include <cstdlib>
 #include <cstdint>
 #include <functional>
 #include <memory>
-#include <thread>
 #include <random>
-#include <ratio>
 #include <ccbase/format.hpp>
 
 #include <write_common.hpp>
@@ -75,12 +68,11 @@ static void
 write_nocache(const char* path, size_t buf_size, size_t count)
 {
 	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC).get();
-	auto buf = allocate_aligned(4096, buf_size).get();
+	auto buf = allocate_aligned(4096, buf_size);
 	disable_cache(fd);
 
-	write_loop(fd, buf, buf_size, count);
+	write_loop(fd, buf.get(), buf_size, count);
 	::close(fd);
-	std::free(buf);
 }
 
 static void
@@ -108,30 +100,27 @@ static void
 write_preallocate_truncate_nocache(const char* path, size_t buf_size, size_t count)
 {
 	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC).get();
-	auto buf = allocate_aligned(4096, buf_size).get();
+	auto buf = allocate_aligned(4096, buf_size);
 	disable_cache(fd);
 	preallocate(fd, count);
 	truncate(fd, count);
 
-	write_loop(fd, buf, buf_size, count);
+	write_loop(fd, buf.get(), buf_size, count);
 	::close(fd);
-	std::free(buf);
 }
 
 static void
 async_write_preallocate_truncate_nocache(const char* path, size_t buf_size, size_t count)
 {
 	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC).get();
-	auto buf1 = allocate_aligned(4096, buf_size).get();
-	auto buf2 = allocate_aligned(4096, buf_size).get();
+	auto buf1 = allocate_aligned(4096, buf_size);
+	auto buf2 = allocate_aligned(4096, buf_size);
 	disable_cache(fd);
 	preallocate(fd, count);
 	truncate(fd, count);
 
-	async_write_loop(fd, buf1, buf2, buf_size, count);
+	async_write_loop(fd, buf1.get(), buf2.get(), buf_size, count);
 	::close(fd);
-	std::free(buf1);
-	std::free(buf2);
 }
 
 static void

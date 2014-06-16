@@ -63,14 +63,11 @@
 */
 
 #include <algorithm>
-#include <atomic>
 #include <cassert>
 #include <cstdlib>
 #include <cstdint>
 #include <functional>
 #include <memory>
-#include <thread>
-#include <ratio>
 #include <ccbase/format.hpp>
 
 #include <read_common.hpp>
@@ -80,12 +77,11 @@ static auto
 read_nocache(const char* path, size_t buf_size)
 {
 	auto fd = safe_open(path, O_RDONLY).get();
-	auto buf = allocate_aligned(4096, buf_size).get();
+	auto buf = allocate_aligned(4096, buf_size);
 	disable_cache(fd);
 
-	auto count = read_loop(fd, buf, buf_size);
+	auto count = read_loop(fd, buf.get(), buf_size);
 	::close(fd);
-	std::free(buf);
 	return count;
 }
 
@@ -118,8 +114,8 @@ static auto
 read_aio_nocache(const char* path, size_t buf_size)
 {
 	auto fd = safe_open(path, O_RDONLY).get();
-	auto buf1 = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
-	auto buf2 = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
+	auto buf1 = allocate_aligned(4096, buf_size);
+	auto buf2 = allocate_aligned(4096, buf_size);
 	disable_cache(fd);
 
 	auto count = aio_read_loop(fd, buf1.get(), buf2.get(), buf_size);
@@ -158,8 +154,8 @@ static auto
 read_async_nocache(const char* path, size_t buf_size)
 {
 	auto fd = safe_open(path, O_RDONLY).get();
-	auto buf1 = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
-	auto buf2 = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
+	auto buf1 = allocate_aligned(4096, buf_size);
+	auto buf2 = allocate_aligned(4096, buf_size);
 	disable_cache(fd);
 
 	auto count = async_read_loop(fd, buf1.get(), buf2.get(), buf_size);
@@ -191,17 +187,6 @@ read_async_rdadvise(const char* path, size_t buf_size)
 
 	auto count = async_read_loop(fd, buf1.get(), buf2.get(), buf_size);
 	::close(fd);
-	return count;
-}
-
-static auto
-mmap_plain(const char* path)
-{
-	auto fd = safe_open(path, O_RDONLY).get();
-	auto fs = file_size(fd).get();
-	auto p = (uint8_t*)::mmap(nullptr, fs, PROT_READ, MAP_PRIVATE, fd, 0);
-	auto count = std::count_if(p, p + fs, [](auto x) { return x == needle; });
-	::munmap(p, fs);
 	return count;
 }
 

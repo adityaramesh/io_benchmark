@@ -8,6 +8,8 @@
 #ifndef ZFD327A4C_B13C_4813_9572_DDC0936536FE
 #define ZFD327A4C_B13C_4813_9572_DDC0936536FE
 
+#include <atomic>
+#include <thread>
 #include <io_common.hpp>
 #include <configuration.hpp>
 

@@ -9,6 +9,8 @@
 #define Z7FE6A1BA_51C8_492E_97C4_983095F7E88E
 
 #include <array>
+#include <atomic>
+#include <thread>
 #include <io_common.hpp>
 #include <configuration.hpp>
 
@@ -176,6 +178,17 @@ read_plain(const char* path, size_t buf_size)
 	auto buf = std::unique_ptr<uint8_t[]>(new uint8_t[buf_size]);
 	auto count = read_loop(fd, buf.get(), buf_size);
 	::close(fd);
+	return count;
+}
+
+static auto
+mmap_plain(const char* path)
+{
+	auto fd = safe_open(path, O_RDONLY).get();
+	auto fs = file_size(fd).get();
+	auto p = (uint8_t*)::mmap(nullptr, fs, PROT_READ, MAP_PRIVATE, fd, 0);
+	auto count = std::count_if(p, p + fs, [](auto x) { return x == needle; });
+	::munmap(p, fs);
 	return count;
 }
 
