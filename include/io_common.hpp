@@ -15,8 +15,10 @@
     PLATFORM_KERNEL == PLATFORM_KERNEL_XNU
 	#include <sys/types.h>
 	#include <sys/stat.h>
+	#include <sys/mman.h>
 	#include <unistd.h>
 	#include <fcntl.h>
+	#include <aio.h>
 #else
 	#error "Unsupported kernel."
 #endif
@@ -104,6 +106,27 @@ file_size(int fd)
 	return st.st_size;
 }
 
+namespace detail {
+
+struct malloc_deleter
+{
+	void operator()(uint8_t* p) const noexcept
+	{ std::free(p); }
+};
+
+using buffer_type = std::unique_ptr<uint8_t[], malloc_deleter>;
+
+}
+
+static detail::buffer_type
+allocate_aligned(size_t align, size_t count)
+{
+	auto p = (uint8_t*)nullptr;
+	auto r = ::posix_memalign((void**)&p, align, count);
+	if (r != 0) { throw std::system_error{r, std::system_category()}; }
+	return detail::buffer_type{p};
+}
+
 #if PLATFORM_KERNEL == PLATFORM_KERNEL_XNU
 
 static inline cc::expected<void>
@@ -113,6 +136,57 @@ purge_cache()
 		throw std::runtime_error{"Failed to purge cache."};
 	}
 	return true;
+}
+
+static void
+preallocate(int fd, size_t count)
+{
+	struct fstore fs;
+	fs.fst_posmode = F_ALLOCATECONTIG;
+	fs.fst_offset = F_PEOFPOSMODE;
+	fs.fst_length = count;
+	if (::fcntl(fd, F_PREALLOCATE, &fs) == -1) {
+		fs.fst_posmode = F_ALLOCATEALL;
+		if (::fcntl(fd, F_PREALLOCATE, &fs) == -1) {
+			throw std::runtime_error{"Warning: failed to preallocate space."};
+		}
+	}
+}
+
+static void
+disable_cache(int fd)
+{
+	if (::fcntl(fd, F_NOCACHE, 1) == -1) {
+		throw current_system_error();
+	}
+}
+
+static void
+enable_rdahead(int fd)
+{
+	if (::fcntl(fd, F_RDAHEAD, 1) == -1) {
+		throw std::system_error{errno, std::system_category()};
+	}
+}
+
+static void
+enable_rdadvise(int fd, off_t fs)
+{
+	using radvisory = struct radvisory;
+	auto rd = radvisory{};
+	rd.ra_offset = 0;
+	rd.ra_count = fs;
+	if (::fcntl(fd, F_RDADVISE, &rd) == -1) {
+		throw std::system_error{errno, std::system_category()};
+	}
+}
+
+static void
+truncate(int fd, off_t fs)
+{
+	if (::ftruncate(fd, fs) == -1) {
+		throw current_system_error();
+	}
 }
 
 #endif
