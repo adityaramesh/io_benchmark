@@ -5,16 +5,6 @@
 ** Contact:	_@adityaramesh.com
 */
 
-// read plain
-// read direct
-// read fadvise
-// read aio direct
-// read aio fadvise
-// read async direct
-// read async fadvise
-// mmap plain
-// mmap fadvise
-
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>
