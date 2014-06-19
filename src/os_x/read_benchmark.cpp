@@ -4,8 +4,8 @@
 ** Date:	06/03/2014
 ** Contact:	_@adityaramesh.com
 **
-** This is a simple benchmark that compares various methods to sequentially read
-** a file.
+** This is a simple benchmark that compares various methods for sequentially
+** reading a file.
 **
 ** - Scheme for OS X:
 **   - Synchronous:
@@ -191,7 +191,7 @@ read_async_rdadvise(const char* path, size_t buf_size)
 }
 
 static auto
-mmap_rdahead(const char* path)
+read_mmap_rdahead(const char* path)
 {
 	auto fd = safe_open(path, O_RDONLY).get();
 	auto fs = file_size(fd).get();
@@ -204,7 +204,7 @@ mmap_rdahead(const char* path)
 }
 
 static auto
-mmap_rdadvise(const char* path)
+read_mmap_rdadvise(const char* path)
 {
 	auto fd = safe_open(path, O_RDONLY).get();
 	auto fs = file_size(fd).get();
@@ -248,7 +248,7 @@ int main(int argc, char** argv)
 	test_read_range(read_async_nocache, path, "read_async_nocache", sizes, fs, count);
 	test_read_range(read_async_rdahead, path, "read_async_rdahead", sizes, fs, count);
 	test_read_range(read_async_rdadvise, path, "read_async_rdadvise", sizes, fs, count);
-	//test_read(std::bind(mmap_plain, path), "mmap_plain", count);
-	//test_read(std::bind(mmap_rdahead, path), "mmap_rdahead", count);
-	//test_read(std::bind(mmap_rdadvise, path), "mmap_rdadvise", count);
+	//test_read(std::bind(read_mmap_plain, path), "mmap_plain", count);
+	//test_read(std::bind(read_mmap_rdahead, path), "mmap_rdahead", count);
+	//test_read(std::bind(read_mmap_rdadvise, path), "mmap_rdadvise", count);
 }

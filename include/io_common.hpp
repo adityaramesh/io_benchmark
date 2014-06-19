@@ -127,6 +127,14 @@ allocate_aligned(size_t align, size_t count)
 	return detail::buffer_type{p};
 }
 
+static void
+truncate(int fd, off_t fs)
+{
+	if (::ftruncate(fd, fs) == -1) {
+		throw current_system_error();
+	}
+}
+
 #if PLATFORM_KERNEL == PLATFORM_KERNEL_XNU
 
 static inline cc::expected<void>
@@ -181,14 +189,6 @@ enable_rdadvise(int fd, off_t fs)
 	}
 }
 
-static void
-truncate(int fd, off_t fs)
-{
-	if (::ftruncate(fd, fs) == -1) {
-		throw current_system_error();
-	}
-}
-
 #endif
 
 #if PLATFORM_KERNEL == PLATFORM_KERNEL_LINUX
@@ -203,10 +203,22 @@ purge_cache()
 }
 
 static void
-fadvise_sequential(int fd, off_t fs)
+fadvise_sequential_read(int fd, off_t fs)
 {
-	::posix_fadvise(fd, 0, fs, POSIX_FADV_WILLNEED);
+	// It turns out that this makes things slower on the machines that I
+	// tested.
+	// ::posix_fadvise(fd, 0, fs, POSIX_FADV_WILLNEED);
+	::posix_fadvise(fd, 0, fs, POSIX_FADV_NOREUSE);
 	::posix_fadvise(fd, 0, fs, POSIX_FADV_SEQUENTIAL);
+}
+
+static void
+preallocate(int fd, size_t count)
+{
+	auto r = ::posix_fallocate(fd, 0, count);
+	if (r != 0) {
+		throw std::system_error{r, std::system_category()};
+	}
 }
 
 #endif

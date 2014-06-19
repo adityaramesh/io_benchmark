@@ -171,5 +171,5 @@ int main(int argc, char** argv)
 	//test_write_range(std::bind(write_preallocate_truncate, _1, _2, count), path, "write_preallocate_truncate", sizes, count);
 	test_write_range(std::bind(write_preallocate_truncate_nocache, _1, _2, count), path, "write_preallocate_truncate_nocache", sizes, count);
 	test_write_range(std::bind(async_write_preallocate_truncate_nocache, _1, _2, count), path, "async_write_preallocate_truncate_nocache", sizes, count);
-	//test_write(std::bind(write_mmap, path, count), path);
+	//test_write(std::bind(write_mmap, path, count), "write_mmap");
 }
