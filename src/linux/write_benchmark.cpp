@@ -1,55 +1,8 @@
 /*
 ** File Name:	write_benchmark.cpp
 ** Author:	Aditya Ramesh
-** Date:	06/04/2014
+** Date:	06/16/2014
 ** Contact:	_@adityaramesh.com
-**
-** - Scheme for OS X:
-**   - Synchronous:
-**     - 4096 KB
-**   - Asynchronous:
-**     - Below 56 MB:
-**       - 256 KB
-**     - 56 MB and above:
-**       - 1024 KB
-**
-** - Best results for OS X:
-**   - 8 MB:
-**     - 4096 KB
-**     - 256 KB
-**   - 16 MB:
-**     - 4096 KB
-**     - 256 KB
-**   - 24 MB:
-**     - 4096 KB
-**     - 256 KB
-**   - 32 MB:
-**     - 16384 KB
-**     - 256 KB
-**   - 64 MB:
-**     - 4096 KB
-**     - 256 KB, 1024 KB
-**   - 48 MB:
-**     - 16384 KB
-**     - 256 KB, 1024 KB
-**   - 56 MB:
-**     - 4096 KB
-**     - 1024 KB
-**   - 64 MB:
-**     - 16384 KB
-**     - 256 KB, 1024 KB
-**   - 80 MB:
-**     - 16384 KB
-**     - 1024 KB
-**   - 96 MB:
-**     - 907 KB
-**     - 4096 KB, 1024 KB
-**   - 112 MB:
-**     - 4096 KB
-**     - 1024 KB
-**   - 128 MB:
-**     - 4096 KB, 16384 KB
-**     - 1024 KB, 4096 KB
 */
 
 #include <algorithm>
@@ -65,12 +18,10 @@
 #include <test.hpp>
 
 static void
-write_nocache(const char* path, size_t buf_size, size_t count)
+write_direct(const char* path, size_t buf_size, size_t count)
 {
-	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC).get();
+	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC | O_DIRECT).get();
 	auto buf = allocate_aligned(4096, buf_size);
-	disable_cache(fd);
-
 	write_loop(fd, buf.get(), buf_size, count);
 	::close(fd);
 }
@@ -79,7 +30,7 @@ static void
 write_preallocate(const char* path, size_t buf_size, size_t count)
 {
 	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC).get();
-	auto buf = std::unique_ptr<uint8_t[]>{new uint8_t[buf_size]};
+	auto buf = allocate_aligned(4096, buf_size);
 	preallocate(fd, count);
 	write_loop(fd, buf.get(), buf_size, count);
 	::close(fd);
@@ -89,36 +40,42 @@ static void
 write_preallocate_truncate(const char* path, size_t buf_size, size_t count)
 {
 	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC).get();
-	auto buf = std::unique_ptr<uint8_t[]>{new uint8_t[buf_size]};
-	preallocate(fd, count);
-	truncate(fd, count);
-	write_loop(fd, buf.get(), buf_size, count);
-	::close(fd);
-}
-
-static void
-write_preallocate_truncate_nocache(const char* path, size_t buf_size, size_t count)
-{
-	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC).get();
 	auto buf = allocate_aligned(4096, buf_size);
-	disable_cache(fd);
 	preallocate(fd, count);
 	truncate(fd, count);
-
 	write_loop(fd, buf.get(), buf_size, count);
 	::close(fd);
 }
 
 static void
-async_write_preallocate_truncate_nocache(const char* path, size_t buf_size, size_t count)
+write_async_direct(const char* path, size_t buf_size, size_t count)
+{
+	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC | O_DIRECT).get();
+	auto buf1 = allocate_aligned(4096, buf_size);
+	auto buf2 = allocate_aligned(4096, buf_size);
+	async_write_loop(fd, buf1.get(), buf2.get(), buf_size, count);
+	::close(fd);
+}
+
+static void
+write_async_preallocate(const char* path, size_t buf_size, size_t count)
 {
 	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC).get();
 	auto buf1 = allocate_aligned(4096, buf_size);
 	auto buf2 = allocate_aligned(4096, buf_size);
-	disable_cache(fd);
+	preallocate(fd, count);
+	async_write_loop(fd, buf1.get(), buf2.get(), buf_size, count);
+	::close(fd);
+}
+
+static void
+write_async_preallocate_truncate(const char* path, size_t buf_size, size_t count)
+{
+	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC).get();
+	auto buf1 = allocate_aligned(4096, buf_size);
+	auto buf2 = allocate_aligned(4096, buf_size);
 	preallocate(fd, count);
 	truncate(fd, count);
-
 	async_write_loop(fd, buf1.get(), buf2.get(), buf_size, count);
 	::close(fd);
 }
@@ -127,7 +84,7 @@ static void
 write_mmap(const char* path, size_t count)
 {
 	auto fd = safe_open(path, O_RDWR | O_CREAT | O_TRUNC).get();
-	disable_cache(fd);
+	// TODO does O_DIRECT help?
 	preallocate(fd, count);
 	truncate(fd, count);
 
@@ -165,11 +122,13 @@ int main(int argc, char** argv)
 
 	std::printf("%s, %s, %s\n", "Method", "Mean (ms)", "Stddev (ms)");
 	std::fflush(stdout);
-	//test_write_range(std::bind(write_plain, _1, _2, count), path, "write_plain", sizes, count);
-	//test_write_range(std::bind(write_nocache, _1, _2, count), path, "write_nocache", sizes, count);
-	//test_write_range(std::bind(write_preallocate, _1, _2, count), path, "write_preallocate", sizes, count);
-	//test_write_range(std::bind(write_preallocate_truncate, _1, _2, count), path, "write_preallocate_truncate", sizes, count);
-	test_write_range(std::bind(write_preallocate_truncate_nocache, _1, _2, count), path, "write_preallocate_truncate_nocache", sizes, count);
-	test_write_range(std::bind(async_write_preallocate_truncate_nocache, _1, _2, count), path, "async_write_preallocate_truncate_nocache", sizes, count);
-	//test_write(std::bind(write_mmap, path, count), "write_mmap");
+	test_write_range(std::bind(write_plain, _1, _2, count), path, "write_plain", sizes, count);
+	test_write_range(std::bind(write_direct, _1, _2, count), path, "write_direct", sizes, count);
+	test_write_range(std::bind(write_preallocate, _1, _2, count), path, "write_preallocate", sizes, count);
+	test_write_range(std::bind(write_preallocate_truncate, _1, _2, count), path, "write_preallocate_truncate", sizes, count);
+	test_write_range(std::bind(write_async_plain, _1, _2, count), path, "write_async_plain", sizes, count);
+	test_write_range(std::bind(write_async_direct, _1, _2, count), path, "write_async_direct", sizes, count);
+	test_write_range(std::bind(write_async_preallocate, _1, _2, count), path, "write_async_preallocate", sizes, count);
+	test_write_range(std::bind(write_async_preallocate_truncate, _1, _2, count), path, "write_async_preallocate_truncate", sizes, count);
+	test_write(std::bind(write_mmap, path, count), "write_mmap");
 }

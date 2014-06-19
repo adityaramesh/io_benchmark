@@ -24,6 +24,7 @@ if RUBY_PLATFORM.include? "darwin"
 elsif RUBY_PLATFORM.include? "linux"
 	source_dir = "src/linux"
 	sources = FileList["src/linux/*"]
+	ldflags = "-lrt"
 end
 
 cxxflags = "#{langflags} #{wflags} #{archflags} #{incflags} #{optflags}"

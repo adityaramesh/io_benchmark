@@ -182,7 +182,7 @@ read_plain(const char* path, size_t buf_size)
 }
 
 static auto
-mmap_plain(const char* path)
+read_mmap_plain(const char* path)
 {
 	auto fd = safe_open(path, O_RDONLY).get();
 	auto fs = file_size(fd).get();

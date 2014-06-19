@@ -131,4 +131,14 @@ write_plain(const char* path, size_t buf_size, size_t count)
 	::close(fd);
 }
 
+static void
+write_async_plain(const char* path, size_t buf_size, size_t count)
+{
+	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC).get();
+	auto buf1 = std::unique_ptr<uint8_t[]>{new uint8_t[buf_size]};
+	auto buf2 = std::unique_ptr<uint8_t[]>{new uint8_t[buf_size]};
+	async_write_loop(fd, buf1.get(), buf2.get(), buf_size, count);
+	::close(fd);
+}
+
 #endif
