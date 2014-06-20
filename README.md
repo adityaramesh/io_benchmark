@@ -43,6 +43,10 @@ tools/*`.
   `data` directory. These files are used to perform the benchmarks.
   - The `tools/test_read.sh` and `tools/test_write.sh` scripts perform the
   reading and writing benchmarks, respectively.
+  - I did not create a script to run the copy benchmark. Based on existing
+  results, it is clear that the fastest way to copy a file on OS X is
+  `copy_mmap`, and `splice_preallocate_fadvise` or
+  `sendfile_preallocate_fadvise` on Linux.
 
 In both `test_read.sh` and `test_write.sh`, you will see the following lines:
 
