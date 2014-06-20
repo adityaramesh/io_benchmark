@@ -7,23 +7,58 @@
 
 # Introduction
 
-This repository contains a set of IO benchmarks for Linux and OS X. These
-benchmarks are intended to determine the fastest ways to perform each the
-following IO operations on the target platform:
+This repository contains a comprehensive set of IO benchmarks for Linux and OS
+X. These benchmarks are intended to determine the fastest ways to perform the
+following IO operations on each target platform:
 
   - Sequentially reading a file.
   - Sequentially overwriting a preallocated file.
   - Replacing the contents of an existing file with those of another file.
 
-Currently, these benchmarks only target OS X and Linux.
-
 # Prerequisites
 
-- A C++11-conformant compiler that accepts flags in GCC's format.
-- Ruby, version 2.0 or newer.
+- Linux (version 2.6.33 or newer) or OS X.
+- A C++11-conformant compiler that accepts flags in GCC's format (e.g. `g++` or
+`clang++`).
+- Boost.
+- Ruby.
 - Rake.
 
-# Instructions
+# Compilation
+
+Before compiling the benchmarks, you will need to set two environment variables.
+
+  - Set `CXX` to your desired C++11-conformant compiler.
+  - Set `BOOST_INCLUDE_PATH` to the path containing the Boost header files.
+
+Afterwards, you can compile the benchmarks by running `rake`.
+
+# Usage
+
+The `tools` directory contains a set of scripts that you will need to run the
+benchmarks. In order to run these scripts, you will need to type `chmod +x
+tools/*`.
+
+  - The `tools/make_data.rb` script uses `dd` to create a set of files in the
+  `data` directory. These files are used to perform the benchmarks.
+  - The `tools/test_read.sh` and `tools/test_write.sh` scripts perform the
+  reading and writing benchmarks, respectively.
+
+In both `test_read.sh` and `test_write.sh`, you will see the following lines:
+
+	#sizes=(8 16 24 32 40 48 56 64 80 96 112 128 160 192 224 256 320 384 448 512 640 768 896 1024)
+	sizes=(8 16 32 64 80 96 112 256) #512 1024)
+
+These lines declare the sizes of the files (in megabytes) that are used for the
+benchmarks. By default, only a small set of files ranging in size from 8 MB to
+256 MB are used. The first line in the pair refers to the full set of files
+produced by `tools/make_data.rb`. Even on a machine with a fast PCIe SSD, the
+read benchmark did not finish overnight. So only uncomment this line if you know
+that you will be able to leave the benchmark running for a long time (half a day
+to several days, depending on the speed of your hard drive).
+
+The results of the benchmarks are saved in the `results` directory. This
+directory already contains results generated from a couple of systems.
 
 # References
 

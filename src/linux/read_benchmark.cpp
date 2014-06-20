@@ -143,13 +143,13 @@ int main(int argc, char** argv)
 	std::printf("%s, %s, %s\n", "Method", "Mean (ms)", "Stddev (ms)");
 	std::fflush(stdout);
 	test_read_range(read_plain, path, "read_plain", sizes, fs, count);
-	//test_read_range(read_direct, path, "read_direct", sizes, fs, count);
+	test_read_range(read_direct, path, "read_direct", sizes, fs, count);
 	test_read_range(read_fadvise, path, "read_fadvise", sizes, fs, count);
-	//test_read_range(aio_read_direct, path, "aio_read_direct", sizes, fs, count);
-	//test_read_range(aio_read_fadvise, path, "aio_read_fadvise", sizes, fs, count);
+	test_read_range(aio_read_direct, path, "aio_read_direct", sizes, fs, count);
+	test_read_range(aio_read_fadvise, path, "aio_read_fadvise", sizes, fs, count);
 	test_read_range(read_async_plain, path, "read_async_plain", sizes, fs, count);
-	//test_read_range(read_async_direct, path, "read_async_direct", sizes, fs, count);
+	test_read_range(read_async_direct, path, "read_async_direct", sizes, fs, count);
 	test_read_range(read_async_fadvise, path, "read_async_fadvise", sizes, fs, count);
-	//test_read(std::bind(read_mmap_plain, path), "mmap_plain", count);
-	//test_read(std::bind(read_mmap_fadvise, path), "mmap_fadvise", count);
+	test_read(std::bind(read_mmap_plain, path), "mmap_plain", count);
+	test_read(std::bind(read_mmap_fadvise, path), "mmap_fadvise", count);
 }
