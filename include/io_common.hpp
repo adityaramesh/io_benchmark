@@ -215,9 +215,16 @@ fadvise_sequential_read(int fd, off_t fs)
 static void
 preallocate(int fd, size_t count)
 {
-	auto r = ::posix_fallocate(fd, 0, count);
-	if (r != 0) {
-		throw std::system_error{r, std::system_category()};
+	if (::fallocate(fd, 0, 0, count) == -1) {
+		throw current_system_error();
+	}
+}
+
+static void
+truncate(int fd, size_t count)
+{
+	if (::ftruncate(fd, count) == -1) {
+		throw current_system_error();
 	}
 }
 

@@ -132,4 +132,46 @@ copy_async(const char* src, const char* dst, size_t buf_size)
 	::close(out);
 }
 
+#if PLATFORM_KERNEL == PLATFORM_KERNEL_LINUX
+
+static cc::expected<std::tuple<int, int>>
+make_pipe()
+{
+	auto pipe = std::array<int, 2>{};
+	if (::pipe(pipe.data()) == -1) {
+		return current_system_error();
+	}
+	return std::make_tuple(pipe[0], pipe[1]);
+}
+
+static auto
+splice_loop(
+	int in_fd,
+	int out_fd,
+	int in_pipe,
+	int out_pipe,
+	size_t buf_size,
+	off_t file_size
+)
+{
+	assert(file_size > 0);
+	assert(buf_size > 0);
+
+	static constexpr auto flags = SPLICE_F_MOVE | SPLICE_F_MORE;
+	auto off = off_t{};
+
+	for (;;) {
+		auto r = ::splice(in_fd, nullptr, in_pipe, nullptr, buf_size, flags);
+		if (r == -1) { throw current_system_error(); }
+		auto s = ::splice(out_pipe, nullptr, out_fd, nullptr, buf_size, flags);
+		if (s == -1) { throw current_system_error(); }
+
+		assert(r == s);
+		off += r;
+		if (off == file_size) { break; }
+	}
+}
+
+#endif
+
 #endif
