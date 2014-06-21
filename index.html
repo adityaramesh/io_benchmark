@@ -72,7 +72,16 @@ prints out the following information:</p>
 
 <p>You can access the raw results for the two machines on which I ran the
 benchmarks <a
-href="https://github.com/adityaramesh/io_benchmark/tree/master/results">here</a>.</p>
+href="https://github.com/adityaramesh/io_benchmark/tree/master/results">here</a>.
+
+<p>Each method used in the read benchmark counts the occurrences of
+<code>needle</code> (set to <code>0xFF</code> in
+<code>include/configuration.hpp</code>) as a check for correctness. The test
+function also purges the page cache after each method evaluation (see
+<code>include/io_common.hpp</code> for how this is done) to mitigate the effects
+of caching. The write benchmark writes a specified number of randomly-generated
+bytes to a destination file. The copy benchmark does not need much
+explanation.</p>
 
 <h1><a name="compilation" class="anchor" href="#compilation"><span class="octicon octicon-link"></span></a>Compilation</h1>
 
