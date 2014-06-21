@@ -108,8 +108,8 @@ occurrences of <code>needle</code>, the write benchmark generates random bytes,
 and the copy benchmark must read a chunk of data before it can write it.
 Using asynchronous double-buffering, we can produce frame <code>n + 1</code>
 while consuming frame <code>n</code>. The results show that, even for the simple
-tasks performed by the benchmarks, this double-buffering scheme results in a
-speedup.</p>
+tasks performed by the benchmarks, this double-buffering scheme often results in
+a speedup over synchronous IO.</p>
 
 <p>Each IO method also uses zero or more of the following optimizations (which,
 in many cases, turn out to be pessimizations): direct IO, read ahead advice to
@@ -331,6 +331,15 @@ Macbook Pro.</p>
 	<td>N/A</td>
 </tr>
 </table>
+
+<p>For reading, there is a point after which it makes sense to stop using
+<code>F_RDADVISE</code> and instead use <code>F_RDAHEAD</code>. It would be nice
+to find out where this point occurs without actually running the benchmark on
+the machine. For writing, the method mentioned performed the fastest for all
+file sizes tested. For any given file size, the best asynchronous IO method is
+generally faster than the best synchronous IO method. This shows that despite
+the modest synchronization overhead, it is still worth it to exploit parallelism
+where possible.</p>
 
 <!--
 <p>Before compiling the benchmarks, you will need to set two environment variables.</p>
