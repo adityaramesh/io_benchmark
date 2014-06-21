@@ -292,15 +292,43 @@ Macbook Pro.</p>
 	<td>Reading</td>
 	<td>Asynchronous</td>
 	<td>Less than 128 MB</td>
-	<td><code>read_rdadvise</code></td>
+	<td><code>read_async_rdadvise</code></td>
 	<td>1024 KB</td>
 </tr>
 <tr>
 	<td>Reading</td>
 	<td>Asynchronous</td>
 	<td>128 MB or greater</td>
-	<td><code>read_rdahead</code></td>
+	<td><code>read_async_rdahead</code></td>
 	<td>4096 KB</td>
+</tr>
+<tr>
+	<td>Writing</td>
+	<td>Synchronous</td>
+	<td>Any</td>
+	<td><code>write_preallocate_truncate_nocache</code></td>
+	<td>4096 KB</td>
+</tr>
+<tr>
+	<td>Writing</td>
+	<td>Asynchronous</td>
+	<td>Below 56 MB</td>
+	<td><code>write_preallocate_truncate_nocache</code></td>
+	<td>256 KB</td>
+</tr>
+<tr>
+	<td>Writing</td>
+	<td>Asynchronous</td>
+	<td>56 MB and above</td>
+	<td><code>write_preallocate_truncate_nocache</code></td>
+	<td>1024 KB</td>
+</tr>
+<tr>
+	<td>Copying</td>
+	<td>Any</td>
+	<td>Any</td>
+	<td><code>copy_mmap</code></td>
+	<td>N/A</td>
 </tr>
 </table>
 
