@@ -67,6 +67,20 @@ to several days, depending on the speed of your hard drive).
 The results of the benchmarks are saved in the `results` directory. This
 directory already contains results generated from a couple of systems.
 
+# License
+
+[![Creative Commons Attribution 4.0 International
+License][license_image]][license_page]
+
+This project is released under the [Creative Commons Attribution 4.0
+International License][license_page].
+
+[license_page]:
+http://creativecommons.org/licenses/by/4.0/
+
+[license_image]:
+http://i.creativecommons.org/l/by/4.0/88x31.png
+
 # References
 
 - The manual pages for [OS X][darwin_man] and [Linux][linux_man].
