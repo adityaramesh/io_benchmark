@@ -153,11 +153,11 @@ on recent versions of the kernel.</code>
 
 <h1><a name="results" class="anchor" href="#results"><span class="octicon octicon-link"></span></a>Results</h1>
 
-Before I discuss the results for the two systems on which I ran the benchmarks,
-here is the complete list of read methods that I tried on OS X and Linux. All
-buffer-based IO methods were evaluated using each of the following buffer sizes:
-4 KB, 8 KB, 12 KB, 16 KB, 24 KB, 32 KB, 40 KB, 48 KB, 56 KB, 64 KB, 256 KB, 1024
-KB, 4096 KB, 16384 KB, 65536 KB, and 262144 KB.
+<p>Before I discuss the results for the two systems on which I ran the
+benchmarks, here is the complete list of read methods that I tried on OS X and
+Linux. All buffer-based IO methods were evaluated using each of the following
+buffer sizes: 4 KB, 8 KB, 12 KB, 16 KB, 24 KB, 32 KB, 40 KB, 48 KB, 56 KB, 64
+KB, 256 KB, 1024 KB, 4096 KB, 16384 KB, 65536 KB, and 262144 KB.</p>
 
 <pre><code>// OS X:
 read_plain
@@ -186,7 +186,7 @@ read_mmap_plain
 read_mmap_fadvise
 </code></pre>
 
-Here is the list of write methods:
+<p>Here is the list of write methods:</p>
 
 <pre><code>// OS X:
 write_plain
@@ -215,9 +215,9 @@ mmap_preallocate
 mmap_truncate_direct
 </code></pre>
 
-Finally, here is a list of the copy methods. Note that I avoided testing many
+<p>Finally, here is a list of the copy methods. Note that I avoided testing many
 combinations of optimizations that I expected to perform poorly based on the
-read and write results.
+read and write results.</p>
 
 <pre><code>// OS X:
 copy_plain
