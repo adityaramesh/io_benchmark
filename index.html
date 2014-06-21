@@ -31,37 +31,91 @@
     <!-- MAIN CONTENT -->
     <div id="main_content_wrap" class="outer">
       <section id="main_content" class="inner">
-        <h3>
-<a name="welcome-to-github-pages" class="anchor" href="#welcome-to-github-pages"><span class="octicon octicon-link"></span></a>Welcome to GitHub Pages.</h3>
+        <h1>
+<a name="introduction" class="anchor" href="#introduction"><span class="octicon octicon-link"></span></a>Introduction</h1>
 
-<p>This automatic page generator is the easiest way to create beautiful pages for all of your projects. Author your page content here using GitHub Flavored Markdown, select a template crafted by a designer, and publish. After your page is generated, you can check out the new branch:</p>
+<p>This repository contains a comprehensive set of IO benchmarks for Linux and OS
+X. These benchmarks are intended to determine the fastest ways to perform the
+following IO operations on each target platform:</p>
 
-<pre><code>$ cd your_repo_root/repo_name
-$ git fetch origin
-$ git checkout gh-pages
+<ul>
+<li>Sequentially reading a file.</li>
+<li>Sequentially overwriting a preallocated file.</li>
+<li>Replacing the contents of an existing file with those of another file.</li>
+</ul><h1>
+<a name="prerequisites" class="anchor" href="#prerequisites"><span class="octicon octicon-link"></span></a>Prerequisites</h1>
+
+<ul>
+<li>Linux (version 2.6.33 or newer) or OS X.</li>
+<li>A C++11-conformant compiler that accepts flags in GCC's format (e.g. <code>g++</code> or
+<code>clang++</code>).</li>
+<li>Boost.</li>
+<li>Ruby.</li>
+<li>Rake.</li>
+</ul><h1>
+<a name="compilation" class="anchor" href="#compilation"><span class="octicon octicon-link"></span></a>Compilation</h1>
+
+<p>Before compiling the benchmarks, you will need to set two environment variables.</p>
+
+<ul>
+<li>Set <code>CXX</code> to your desired C++11-conformant compiler.</li>
+<li>Set <code>BOOST_INCLUDE_PATH</code> to the path containing the Boost header files.</li>
+</ul><p>Afterwards, you can compile the benchmarks by running <code>rake</code>.</p>
+
+<h1>
+<a name="usage" class="anchor" href="#usage"><span class="octicon octicon-link"></span></a>Usage</h1>
+
+<p>The <code>tools</code> directory contains a set of scripts that you will need to run the
+benchmarks. In order to run these scripts, you will need to type <code>chmod +x
+tools/*</code>.</p>
+
+<ul>
+<li>The <code>tools/make_data.rb</code> script uses <code>dd</code> to create a set of files in the
+<code>data</code> directory. These files are used to perform the benchmarks.</li>
+<li>The <code>tools/test_read.sh</code> and <code>tools/test_write.sh</code> scripts perform the
+reading and writing benchmarks, respectively.</li>
+<li>The read benchmark <strong>must</strong> be run as root! This is because the benchmark
+repeatedly drops the page cache to obtain accurate results. Do <strong>not</strong> run
+this benchmark on a server that is doing anything important!</li>
+<li>I did not create a script to run the copy benchmark. Based on existing
+results, it is clear that the fastest way to copy a file on OS X is
+<code>copy_mmap</code>, and <code>splice_preallocate_fadvise</code> or
+<code>sendfile_preallocate_fadvise</code> on Linux.</li>
+</ul><p>In both <code>test_read.sh</code> and <code>test_write.sh</code>, you will see the following lines:</p>
+
+<pre><code>#sizes=(8 16 24 32 40 48 56 64 80 96 112 128 160 192 224 256 320 384 448 512 640 768 896 1024)
+sizes=(8 16 32 64 80 96 112 256) #512 1024)
 </code></pre>
 
-<p>If you're using the GitHub for Mac, simply sync your repository and you'll see the new branch.</p>
+<p>These lines declare the sizes of the files (in megabytes) that are used for the
+benchmarks. By default, only a small set of files ranging in size from 8 MB to
+256 MB are used. The first line in the pair refers to the full set of files
+produced by <code>tools/make_data.rb</code>. Even on a machine with a fast PCIe SSD, the
+read benchmark did not finish overnight. So only uncomment this line if you know
+that you will be able to leave the benchmark running for a long time (half a day
+to several days, depending on the speed of your hard drive).</p>
 
-<h3>
-<a name="designer-templates" class="anchor" href="#designer-templates"><span class="octicon octicon-link"></span></a>Designer Templates</h3>
+<p>The results of the benchmarks are saved in the <code>results</code> directory. This
+directory already contains results generated from a couple of systems.</p>
 
-<p>We've crafted some handsome templates for you to use. Go ahead and continue to layouts to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved if it remained markdown format.</p>
+<h1>
+<a name="license" class="anchor" href="#license"><span class="octicon octicon-link"></span></a>License</h1>
 
-<h3>
-<a name="rather-drive-stick" class="anchor" href="#rather-drive-stick"><span class="octicon octicon-link"></span></a>Rather Drive Stick?</h3>
+<p><a href="http://creativecommons.org/licenses/by/4.0/"><img src="http://i.creativecommons.org/l/by/4.0/88x31.png" alt="Creative Commons Attribution 4.0 International
+License"></a></p>
 
-<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator written by our own Tom Preston-Werner. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
+<p>This project is released under the <a href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0
+International License</a>.</p>
 
-<h3>
-<a name="authors-and-contributors" class="anchor" href="#authors-and-contributors"><span class="octicon octicon-link"></span></a>Authors and Contributors</h3>
+<h1>
+<a name="references" class="anchor" href="#references"><span class="octicon octicon-link"></span></a>References</h1>
 
-<p>You can <a href="https://github.com/blog/821" class="user-mention">@mention</a> a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor's GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
-
-<h3>
-<a name="support-or-contact" class="anchor" href="#support-or-contact"><span class="octicon octicon-link"></span></a>Support or Contact</h3>
-
-<p>Having trouble with Pages? Check out the documentation at <a href="http://help.github.com/pages">http://help.github.com/pages</a> or contact <a href="mailto:support@github.com">support@github.com</a> and we’ll help you sort it out.</p>
+<ul>
+<li>The manual pages for <a href="https://developer.apple.com/library/mac/documentation/Darwin/Reference/Manpages/" title="Mac OS X Manual Pages">OS X</a> and <a href="http://linux.die.net/man/" title="Linux Manual Pages">Linux</a>.</li>
+<li>A very useful <a href="https://github.com/Feh/write-patterns" title="Write Patterns">benchmark</a> on write patterns.</li>
+<li>The <a href="http://blog.plenz.com/2014-04/so-you-want-to-write-to-a-file-real-fast.html" title="Write Patterns Blog Post">blog post</a> by the same author.</li>
+<li>A Mozilla <a href="https://blog.mozilla.org/tglek/2010/09/09/help-wanted-does-fcntlf_preallocate-work-as-advertised-on-osx/" title="F_PREALLOCATE Blog Post">blog post</a> about <code>F_PREALLOCATE</code> on OS X.</li>
+</ul>
       </section>
     </div>
 
