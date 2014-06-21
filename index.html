@@ -41,7 +41,9 @@ results from the two machines on which I ran the benchmarks. I also quickly
 threw up a <a
 href="https://docs.google.com/a/adityaramesh.com/forms/d/1h2ogikCYrW3oCFjMJhWSoyZQ0NeyP3759JRquyjh-YM/viewform">Google
 form</a> so people can run the benchmarks on different systems and share their
-results. The form submissions are publicly viewable.</p>
+results. The form submissions are <a
+href="https://docs.google.com/spreadsheets/d/12ZfXUtRwItcUwgKDt9HF5mIdEIdFbgXTVL5RjaqHAL0/edit?usp=sharing">publicly
+viewable.</a></p>
 
 <p>Before proceeding, I would like to warn you that I am by no means a systems
 expert. I have tried to be cautious when writing the benchmarks, but it is very
@@ -137,7 +139,7 @@ has the <code>fallocate</code> and <code>ftruncate</code> functions, which do
 slightly different things. Using the <code>posix_fallocate</code> function on
 Linux is inadvisable, because glibc emulates the behavior (very inefficiently!)
 even if the underlying file system does not support the operation. The
-<code>ftruncate</code> function throws <code>EOPNOTSUPP</code> in this case, so
+<code>fallocate</code> function throws <code>EOPNOTSUPP</code> in this case, so
 the programmer has the option of falling back to other approaches. Finally, <a
 href="https://blog.mozilla.org/tglek/2010/09/09/help-wanted-does-fcntlf_preallocate-work-as-advertised-on-osx/">this</a>
 Mozilla blog post warns that on OS X, <code>F_PREALLOCATE</code> need to be
@@ -154,10 +156,10 @@ on recent versions of the kernel.</code>
 <h1><a name="results" class="anchor" href="#results"><span class="octicon octicon-link"></span></a>Results</h1>
 
 <p>Before I discuss the results for the two systems on which I ran the
-benchmarks, here is the complete list of read methods that I tried on OS X and
-Linux. All buffer-based IO methods were evaluated using each of the following
-buffer sizes: 4 KB, 8 KB, 12 KB, 16 KB, 24 KB, 32 KB, 40 KB, 48 KB, 56 KB, 64
-KB, 256 KB, 1024 KB, 4096 KB, 16384 KB, 65536 KB, and 262144 KB.</p>
+benchmarks, here is the exhaustive list of read methods that I tried.  All
+buffer-based IO methods were evaluated using each of the following buffer sizes:
+4 KB, 8 KB, 12 KB, 16 KB, 24 KB, 32 KB, 40 KB, 48 KB, 56 KB, 64 KB, 256 KB, 1024
+KB, 4096 KB, 16384 KB, 65536 KB, and 262144 KB.</p>
 
 <pre><code>// OS X:
 read_plain
@@ -173,6 +175,7 @@ read_async_rdadvise
 read_mmap_plain
 read_mmap_rdahead
 read_mmap_rdadvise
+
 // Linux:
 read_plain
 read_direct
@@ -196,6 +199,7 @@ write_preallocate_truncate
 write_preallocate_truncate_nocache
 async_write_preallocate_truncate_nocache
 write_mmap
+
 // Linux:
 write_plain
 write_direct
@@ -225,6 +229,7 @@ copy_nocache
 copy_rdahead_preallocate
 copy_rdadvise_preallocate
 copy_mmap
+
 // Linux:
 copy_plain
 copy_direct
@@ -240,6 +245,14 @@ copy_sendfile_preallocate
 copy_sendfile_preallocate_fadvise
 copy_sendfile_fadvise
 </code></pre>
+
+The benchmarks were run on two systems: a mid-2012 Macbook Pro with an SSD,
+running OS X 10.9, and a Linux server with a PCIe SSD, running Arch Linux with
+kernel version 3.14.4.
+
+<h3><a name="read_results" class="anchor" href="#read_results"><span class="octicon octicon-link"></span></a>Read Results</h3>
+
+
 
 <!--
 <p>Before compiling the benchmarks, you will need to set two environment variables.</p>
