@@ -120,11 +120,26 @@ available documentation, I gathered that the <code>F_RDADVISE</code> and
 <code>F_RDAHEAD</code> are analogous to the <code>FADV_WILLNEED</code> and
 <code>FADV_SEQUENTIAL</code> flags on Linux, respectively. The
 <code>FADV_WILLNEED</code> flag initiates a non-blocking read of the specified
-region into the page cache. Experiment has shown that the
-<code>F_RDADVISE</code> has a similar effect on OS X. The
-<code>FADV_SEQUENTIAL</code> flag doubles the size of the read ahead buffer on
-Linux. Presumably, the <code>F_RDAHEAD</code> flag does something similar on OS
-X, but the manual was sparse on details.</p>
+region into the page cache. Experiment has shown that <code>F_RDADVISE</code>
+has a similar effect on OS X. On Linux, the <code>FADV_SEQUENTIAL</code> flag
+doubles the size of the read ahead buffer.  Presumably, the
+<code>F_RDAHEAD</code> flag does something similar on OS X, but the manual was
+sparse on details.</p>
+
+<p>On both OS X and Linux, one can preallocate a file before writing to it, in
+order to accelerate IO. As with the other optimizations, OS X exposes this
+interface via <code>fcntl</code> and the <code>F_PREALLOCATE</code> flag. Linux
+has the <code>fallocate</code> and <code>ftruncate</code> functions, which do
+slightly different things. Using the <code>posix_fallocate</code> function on
+Linux is inadvisable, because glibc emulates the behavior (very inefficiently!)
+even if the underlying file system does not support the operation. The
+<code>ftruncate</code> function throws <code>EOPNOTSUPP</code> in this case, so
+the programmer has the option of falling back to other approaches. Finally, <a
+href="https://blog.mozilla.org/tglek/2010/09/09/help-wanted-does-fcntlf_preallocate-work-as-advertised-on-osx/">this</a>
+Mozilla blog post warns that on OS X, <code>F_PREALLOCATE</code> need to be
+followed by <code>truncate</code> in order to force the data to be written to
+the file. In my benchmarks, I tried both approaches (with and without
+<code>truncate</code>).</p>
 
 <!--
 <p>Before compiling the benchmarks, you will need to set two environment variables.</p>
