@@ -87,9 +87,9 @@ last benchmark, which tests copying, does not need much explanation.</p>
 
 <h1><a name="methods" class="anchor" href="#methods"><span class="octicon octicon-link"></span></a>Methods</h1>
 
-<p>The IO methods can be segregated into two broad categories. Each method
+<p>The IO methods can be segregated into two broad categories. Each IO method
 either uses a buffer to read or write one chunk at a time within a loop, or uses
-a special method to accomplish the same task. Methods in the first class fall
+a special function to accomplish the same task. Methods in the first class fall
 into one of three categories: synchronous IO, POSIX AIO, or lock-free
 asynchronous IO using C++ atomics. Examples of IO methods in the second class
 are <code>mmap</code>, <code>splice</code>, and <code>sendfile</code>, with the
@@ -107,9 +107,24 @@ the target platform. In such cases, all possible combinations of the available
 choices were tried. I omitted reporting the combinations that generally yielded
 slower execution times across the entire range of file sizes.</p>
 
-<h2><a name="os_x" class="anchor" href="#os_x"><span class="octicon octicon-link"></span></a>OS X</h2>
+<p>On OS X, one can disable caching using <code>fcntl</code> with the
+<code>F_NOCACHE</code> flag. On Linux, this is done by opening the file using
+the <code>O_DIRECT</code> flag. Further information I found online suggested
+that the IO buffer address and length should both be multiples of the page size,
+and the request length should be a multiple of the file system's block size. I
+used <code>posix_memalign</code> to accommodate for these constraints.</p>
 
-Blah blah blah stuff goes here
+<p>OS X offers two different kinds of read ahead optimizations via
+<code>fcntl</code>: <code>F_RDAHEAD</code> and <code>F_RDADVISE</code>. Based on
+available documentation, I gathered that the <code>F_RDADVISE</code> and
+<code>F_RDAHEAD</code> are analogous to the <code>FADV_WILLNEED</code> and
+<code>FADV_SEQUENTIAL</code> flags on Linux, respectively. The
+<code>FADV_WILLNEED</code> flag initiates a non-blocking read of the specified
+region into the page cache. Experiment has shown that the
+<code>F_RDADVISE</code> has a similar effect on OS X. The
+<code>FADV_SEQUENTIAL</code> flag doubles the size of the read ahead buffer on
+Linux. Presumably, the <code>F_RDAHEAD</code> flag does something similar on OS
+X, but the manual was sparse on details.</p>
 
 <!--
 <p>Before compiling the benchmarks, you will need to set two environment variables.</p>
