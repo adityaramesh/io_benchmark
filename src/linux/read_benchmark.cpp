@@ -140,8 +140,7 @@ int main(int argc, char** argv)
 	auto sizes = {4, 8, 12, 16, 24, 32, 40, 48, 56, 64, 256, 1024, 4096, 16384, 65536, 262144};
 	purge_cache().get();
 
-	std::printf("%s, %s, %s\n", "Method", "Mean (ms)", "Stddev (ms)");
-	std::fflush(stdout);
+	print_header();
 	test_read_range(read_plain, path, "read_plain", sizes, fs, count);
 	test_read_range(read_direct, path, "read_direct", sizes, fs, count);
 	test_read_range(read_fadvise, path, "read_fadvise", sizes, fs, count);

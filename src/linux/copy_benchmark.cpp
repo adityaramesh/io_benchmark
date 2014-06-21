@@ -226,13 +226,12 @@ int main(int argc, char** argv)
 	auto fs = file_size(fd).get();
 	safe_close(fd).get();
 
-	std::printf("%s, %s, %s\n", "Method", "Mean (ms)", "Stddev (ms)");
-	std::fflush(stdout);
+	print_header();
 	test_copy_range(copy_plain, src, dst, "copy_plain", sizes, fs);
 	test_copy_range(copy_direct, src, dst, "copy_direct", sizes, fs);
 	test_copy_range(copy_preallocate, src, dst, "copy_preallocate", sizes, fs);
-	test_write(std::bind(copy_mmap_plain, src, dst), "copy_mmap_plain");
-	test_write(std::bind(copy_mmap_fadvise, src, dst), "copy_mmap_fadvise");
+	test_write(std::bind(copy_mmap_plain, src, dst), "copy_mmap_plain", fs);
+	test_write(std::bind(copy_mmap_fadvise, src, dst), "copy_mmap_fadvise", fs);
 	test_copy_range(copy_splice, src, dst, "copy_splice", sizes, fs);
 	test_copy_range(copy_splice_preallocate, src, dst, "copy_splice_preallocate", sizes, fs);
 	test_copy_range(copy_splice_preallocate_fadvise, src, dst, "copy_splice_preallocate_fadvise", sizes, fs);

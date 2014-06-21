@@ -43,6 +43,9 @@ tools/*`.
   `data` directory. These files are used to perform the benchmarks.
   - The `tools/test_read.sh` and `tools/test_write.sh` scripts perform the
   reading and writing benchmarks, respectively.
+  - The read benchmark **must** be run as root! This is because the benchmark
+  repeatedly drops the page cache to obtain accurate results. Do **not** run
+  this benchmark on a server that is doing anything important!
   - I did not create a script to run the copy benchmark. Based on existing
   results, it is clear that the fastest way to copy a file on OS X is
   `copy_mmap`, and `splice_preallocate_fadvise` or

@@ -228,8 +228,7 @@ int main(int argc, char** argv)
 	// Dummy write to create file.
 	write_plain(path, 4 * kb, count);
 
-	std::printf("%s, %s, %s\n", "Method", "Mean (ms)", "Stddev (ms)");
-	std::fflush(stdout);
+	print_header();
 	test_write_range(std::bind(write_plain, _1, _2, count), path, "write_plain", sizes, count);
 	test_write_range(std::bind(write_direct, _1, _2, count), path, "write_direct", sizes, count);
 	test_write_range(std::bind(write_preallocate, _1, _2, count), path, "write_preallocate", sizes, count);
