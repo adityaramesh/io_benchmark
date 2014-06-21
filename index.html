@@ -101,6 +101,16 @@ href="https://stackoverflow.com/questions/20973754/linux-aio-poor-scaling">scale
 very poorly</a>. To my knowledge, Linux AIO only works reliably for raw block
 devices.</p>
 
+<p>At first glance, it may not make sense why one would benefit from using
+asynchronous IO for these benchmarks. But all three benchmarks perform work that
+can be pipelined using a double-buffering scheme. The read benchmark counts the
+occurrences of <code>needle</code>, the write benchmark generates random bytes,
+and the copy benchmark must read a chunk of data before it can write it.
+Using asynchronous double-buffering, we can produce frame <code>n + 1</code>
+while consuming frame <code>n</code>. The results show that, even for the simple
+tasks performed by the benchmarks, this double-buffering scheme results in a
+speedup.</p>
+
 <p>Each IO method also uses zero or more of the following optimizations (which,
 in many cases, turn out to be pessimizations): direct IO, read ahead advice to
 the OS (for reading and copying), and preallocation (for writing and copying).
@@ -246,9 +256,9 @@ copy_sendfile_preallocate_fadvise
 copy_sendfile_fadvise
 </code></pre>
 
-The benchmarks were run on two systems: a mid-2012 Macbook Pro with an SSD,
+<p>The benchmarks were run on two systems: a mid-2012 Macbook Pro with an SSD,
 running OS X 10.9, and a Linux server with a PCIe SSD, running Arch Linux with
-kernel version 3.14.4.
+kernel version 3.14.4.</p>
 
 <h3><a name="read_results" class="anchor" href="#read_results"><span class="octicon octicon-link"></span></a>Read Results</h3>
 
