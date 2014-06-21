@@ -107,6 +107,8 @@ the target platform. In such cases, all possible combinations of the available
 choices were tried. I omitted reporting the combinations that generally yielded
 slower execution times across the entire range of file sizes.</p>
 
+<h3><a name="read_optimizations" class="anchor" href="#read_optimizations"><span class="octicon octicon-link"></span></a>Read Optimizations</h3>
+
 <p>On OS X, one can disable caching using <code>fcntl</code> with the
 <code>F_NOCACHE</code> flag. On Linux, this is done by opening the file using
 the <code>O_DIRECT</code> flag. Further information I found online suggested
@@ -126,6 +128,8 @@ doubles the size of the read ahead buffer.  Presumably, the
 <code>F_RDAHEAD</code> flag does something similar on OS X, but the manual was
 sparse on details.</p>
 
+<h3><a name="write_optimizations" class="anchor" href="#write_optimizations"><span class="octicon octicon-link"></span></a>Write Optimizations</h3>
+
 <p>On both OS X and Linux, one can preallocate a file before writing to it, in
 order to accelerate IO. As with the other optimizations, OS X exposes this
 interface via <code>fcntl</code> and the <code>F_PREALLOCATE</code> flag. Linux
@@ -138,8 +142,7 @@ the programmer has the option of falling back to other approaches. Finally, <a
 href="https://blog.mozilla.org/tglek/2010/09/09/help-wanted-does-fcntlf_preallocate-work-as-advertised-on-osx/">this</a>
 Mozilla blog post warns that on OS X, <code>F_PREALLOCATE</code> need to be
 followed by <code>truncate</code> in order to force the data to be written to
-the file. In my benchmarks, I tried both approaches (with and without
-<code>truncate</code>).</p>
+the file. I implemented both approaches in the benchmarks.</p>
 
 <!--
 <p>Before compiling the benchmarks, you will need to set two environment variables.</p>
