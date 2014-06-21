@@ -336,10 +336,18 @@ Macbook Pro.</p>
 <code>F_RDADVISE</code> and instead use <code>F_RDAHEAD</code>. It would be nice
 to find out where this point occurs without actually running the benchmark on
 the machine. For writing, the method mentioned performed the fastest for all
-file sizes tested. For any given file size, the best asynchronous IO method is
+file sizes tested. For any given file size, the best asynchronous IO method was
 generally faster than the best synchronous IO method. This shows that despite
 the modest synchronization overhead, it is still worth it to exploit parallelism
 where possible.</p>
+
+<p>For reading and writing, the choice of buffer size does make a modest
+difference in performance. It may be worth the time to try out a range of buffer
+sizes if you know in advantage that your program will only run on a particular
+platform. The difference is much more dramatic when <code>F_NOCACHE</code> is
+used for reading, but this approach did not yield good results anyway. For
+copying, the fastest method in all cases was a simple method that used
+<code>mmap</code> twice and <code>std::copy</code> to transfer the data.</p>
 
 <!--
 <p>Before compiling the benchmarks, you will need to set two environment variables.</p>
