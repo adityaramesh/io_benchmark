@@ -264,7 +264,8 @@ server was using ext4 for the partition on which the benchmark was run.</p>
 <h3><a name="results_macbook_pro" class="anchor" href="#results_macbook_pro"><span class="octicon octicon-link"></span></a>Results: Macbook Pro</h3>
 
 <p>Below, I have tabulated what I found to be the best schemes for IO on the
-Macbook Pro.</p>
+Macbook Pro. The data from which these conclusions were drawn can be found <a
+href="https://github.com/adityaramesh/io_benchmark/tree/master/results/macbook_pro">here.</a></p>
 
 <table>
 <tr>
@@ -352,7 +353,8 @@ copying, the fastest method in all cases was a simple method that used
 <h3><a name="results_linux_server" class="anchor" href="#results_linux_server"><span class="octicon octicon-link"></span></a>Results: Linux Server</h3>
 
 <p>Below, I have tabulated what I found to be the best schemes for IO on the
-Linux server.</p>
+Linux server. The data from which these conclusions were drawn can be found <a
+href="https://github.com/adityaramesh/io_benchmark/tree/master/results/julie">here.</a></p>
 
 <table>
 <tr>
@@ -390,7 +392,34 @@ Linux server.</p>
 	<td><code>write_mmap</code></td>
 	<td>N/A</td>
 </tr>
+<tr>
+	<td>Copying</td>
+	<td>Any</td>
+	<td>Any</td>
+	<td><code>copy_sendfile</code></td>
+	<td>N/A</td>
+</tr>
 </table>
+
+<p>The results for reading on the Linux server were a lot less decisive than
+they were on Macbook Pro. Using <code>FADV_SEQUENTIAL</code> sometimes resulted
+in a speedup, and other times resulted in performance degradations. There was no
+clear tradeoff point in terms of the file size. However, <code>read_plain</code>
+(which uses <code>pread</code> in a loop) generally performed well with a buffer
+size of 32 KB.</p>
+
+<p>The implementation of <code>mmap</code> on Linux seems to be much more
+competitive than the one on OS X. For reading and writing, <code>mmap</code>
+generally resulted in poor performance on the Macbook Pro. On the Linux server,
+<code>mmap</code> is the preferred method for writing more 256 MB or more at a
+time. Finally, <code>splice</code> and <code>sendfile</code> were the clear
+winners for copying files. I preferred <code>sendfile</code> to
+<code>splice</code>, since the usage of  much simpler, and the programmer does
+not have to choose a buffer size.</p>
+
+<h3><a name="conclusion" class="anchor" href="#conclusion"><span class="octicon octicon-link"></span></a>Conclusion</h3>
+
+<p>The</p>
 
 </section>
 </div>
