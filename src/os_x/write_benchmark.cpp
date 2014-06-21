@@ -163,13 +163,12 @@ int main(int argc, char** argv)
 	// Dummy write to create file.
 	write_plain(path, 4 * kb, count);
 
-	std::printf("%s, %s, %s\n", "Method", "Mean (ms)", "Stddev (ms)");
-	std::fflush(stdout);
+	print_header();
 	test_write_range(std::bind(write_plain, _1, _2, count), path, "write_plain", sizes, count);
 	test_write_range(std::bind(write_nocache, _1, _2, count), path, "write_nocache", sizes, count);
 	test_write_range(std::bind(write_preallocate, _1, _2, count), path, "write_preallocate", sizes, count);
 	test_write_range(std::bind(write_preallocate_truncate, _1, _2, count), path, "write_preallocate_truncate", sizes, count);
 	test_write_range(std::bind(write_preallocate_truncate_nocache, _1, _2, count), path, "write_preallocate_truncate_nocache", sizes, count);
 	test_write_range(std::bind(async_write_preallocate_truncate_nocache, _1, _2, count), path, "async_write_preallocate_truncate_nocache", sizes, count);
-	test_write(std::bind(write_mmap, path, count), "write_mmap");
+	test_write(std::bind(write_mmap, path, count), "write_mmap", count);
 }

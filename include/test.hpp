@@ -16,6 +16,13 @@
 #include <io_common.hpp>
 #include <boost/range/numeric.hpp>
 
+static void
+print_header()
+{
+	std::printf("%s, %s, %s, %s\n", "File Size", "Method", "Mean (ms)", "Stddev (ms)");
+	std::fflush(stdout);
+}
+
 /*
 ** The `*_read` and `*_write` functions have not been abstracted into one
 ** function, because clang was emitting bad code or getting ICE's when nested
@@ -23,7 +30,12 @@
 */
 
 template <class Function>
-static void test_read(const Function& func, const char* name, unsigned count)
+static void test_read(
+	const Function& func,
+	const char* name,
+	unsigned count,
+	off_t file_size
+)
 {
 	using std::chrono::high_resolution_clock;
 	using std::chrono::duration_cast;
@@ -49,7 +61,7 @@ static void test_read(const Function& func, const char* name, unsigned count)
 			return x + std::pow(y - mean, 2);
 		}));
 
-	std::printf("%s, %f, %f\n", name, mean, stddev);
+	std::printf("%jd, %s, %f, %f\n", file_size, name, mean, stddev);
 	std::fflush(stdout);
 }
 
@@ -69,13 +81,13 @@ static void test_read_range(
 	for (const auto& bs : range) {
 		if (bs * kb <= file_size) {
 			std::snprintf(buf.data(), 64, "%s %d Kb", name, bs);
-			test_read(std::bind(func, path, bs * kb), buf.data(), count);
+			test_read(std::bind(func, path, bs * kb), buf.data(), count, file_size);
 		}
 	}
 }
 
 template <class Function>
-static void test_write(const Function& func, const char* name)
+static void test_write(const Function& func, const char* name, off_t count)
 {
 	using std::chrono::high_resolution_clock;
 	using std::chrono::duration_cast;
@@ -100,7 +112,7 @@ static void test_write(const Function& func, const char* name)
 			return x + std::pow(y - mean, 2);
 		}));
 
-	std::printf("%s, %f, %f\n", name, mean, stddev);
+	std::printf("%jd, %s, %f, %f\n", count, name, mean, stddev);
 	std::fflush(stdout);
 }
 
@@ -119,7 +131,7 @@ static void test_write_range(
 	for (const auto& bs : range) {
 		if (bs * kb <= count) {
 			std::snprintf(buf.data(), 64, "%s %d Kb", name, bs);
-			test_write(std::bind(func, path, bs * kb), buf.data());
+			test_write(std::bind(func, path, bs * kb), buf.data(), count);
 		}
 	}
 }
@@ -140,7 +152,7 @@ static void test_copy_range(
 	for (const auto& bs : range) {
 		if (bs * kb <= count) {
 			std::snprintf(buf.data(), 64, "%s %d Kb", name, bs);
-			test_write(std::bind(func, src, dst, bs * kb), buf.data());
+			test_write(std::bind(func, src, dst, bs * kb), buf.data(), count);
 		}
 	}
 }

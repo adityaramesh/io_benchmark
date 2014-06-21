@@ -150,6 +150,6 @@ int main(int argc, char** argv)
 	test_read_range(read_async_plain, path, "read_async_plain", sizes, fs, count);
 	test_read_range(read_async_direct, path, "read_async_direct", sizes, fs, count);
 	test_read_range(read_async_fadvise, path, "read_async_fadvise", sizes, fs, count);
-	test_read(std::bind(read_mmap_plain, path), "mmap_plain", count);
-	test_read(std::bind(read_mmap_fadvise, path), "mmap_fadvise", count);
+	test_read(std::bind(read_mmap_plain, path), "mmap_plain", count, fs);
+	test_read(std::bind(read_mmap_fadvise, path), "mmap_fadvise", count, fs);
 }

@@ -7,3 +7,4 @@ set -x
 for s in ${sizes[@]}; do
 	./out/read_benchmark.run data/test_$s.bin | tee results/read_$s.csv
 done
+cat results/read_*.csv > results/read_results.csv

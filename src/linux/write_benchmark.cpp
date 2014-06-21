@@ -242,8 +242,8 @@ int main(int argc, char** argv)
 	//test_write_range(std::bind(write_async_truncate, _1, _2, count), path, "write_async_truncate", sizes, count);
 	test_write_range(std::bind(write_async_direct_preallocate, _1, _2, count), path, "write_async_direct_preallocate", sizes, count);
 	//test_write_range(std::bind(write_async_direct_truncate, _1, _2, count), path, "write_async_direct_truncate", sizes, count);
-	test_write(std::bind(write_mmap_preallocate, path, count), "write_mmap");
-	test_write(std::bind(write_mmap_preallocate_direct, path, count), "write_mmap_direct");
-	test_write(std::bind(write_mmap_preallocate, path, count), "write_mmap");
-	test_write(std::bind(write_mmap_truncate_direct, path, count), "write_mmap_direct");
+	test_write(std::bind(write_mmap_preallocate, path, count), "write_mmap", count);
+	test_write(std::bind(write_mmap_preallocate_direct, path, count), "write_mmap_direct", count);
+	test_write(std::bind(write_mmap_preallocate, path, count), "write_mmap", count);
+	test_write(std::bind(write_mmap_truncate_direct, path, count), "write_mmap_direct", count);
 }

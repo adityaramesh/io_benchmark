@@ -117,11 +117,10 @@ int main(int argc, char** argv)
 	auto fs = file_size(fd).get();
 	safe_close(fd).get();
 
-	std::printf("%s, %s, %s\n", "Method", "Mean (ms)", "Stddev (ms)");
-	std::fflush(stdout);
+	print_header();
 	test_copy_range(copy_plain, src, dst, "copy_plain", sizes, fs);
 	test_copy_range(copy_nocache, src, dst, "copy_nocache", sizes, fs);
 	test_copy_range(copy_rdahead_preallocate, src, dst, "copy_rdahead_preallocate", sizes, fs);
 	test_copy_range(copy_rdadvise_preallocate, src, dst, "copy_rdadvise_preallocate", sizes, fs);
-	test_write(std::bind(copy_mmap, src, dst), "copy_mmap");
+	test_write(std::bind(copy_mmap, src, dst), "copy_mmap", fs);
 }

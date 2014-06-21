@@ -7,3 +7,4 @@ set -x
 for s in ${sizes[@]}; do
 	./out/write_benchmark.run $[s * 2**20] | tee results/write_$s.csv
 done
+cat results/write_*.csv > results/write_results.csv

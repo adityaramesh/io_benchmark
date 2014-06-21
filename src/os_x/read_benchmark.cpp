@@ -236,7 +236,7 @@ int main(int argc, char** argv)
 	auto sizes = {4, 8, 12, 16, 24, 32, 40, 48, 56, 64, 256, 1024, 4096, 16384, 65536, 262144};
 	purge_cache().get();
 
-	std::printf("%s, %s, %s\n", "Method", "Mean (ms)", "Stddev (ms)");
+	std::printf("%s, %s, %s, %s\n", "File Size", "Method", "Mean (ms)", "Stddev (ms)");
 	std::fflush(stdout);
 	test_read_range(read_plain, path, "read_plain", sizes, fs, count);
 	test_read_range(read_nocache, path, "read_nocache", sizes, fs, count);
@@ -248,7 +248,7 @@ int main(int argc, char** argv)
 	test_read_range(read_async_nocache, path, "read_async_nocache", sizes, fs, count);
 	test_read_range(read_async_rdahead, path, "read_async_rdahead", sizes, fs, count);
 	test_read_range(read_async_rdadvise, path, "read_async_rdadvise", sizes, fs, count);
-	//test_read(std::bind(read_mmap_plain, path), "mmap_plain", count);
-	//test_read(std::bind(read_mmap_rdahead, path), "mmap_rdahead", count);
-	//test_read(std::bind(read_mmap_rdadvise, path), "mmap_rdadvise", count);
+	//test_read(std::bind(read_mmap_plain, path), "mmap_plain", count, fs);
+	//test_read(std::bind(read_mmap_rdahead, path), "mmap_rdahead", count, fs);
+	//test_read(std::bind(read_mmap_rdadvise, path), "mmap_rdadvise", count, fs);
 }

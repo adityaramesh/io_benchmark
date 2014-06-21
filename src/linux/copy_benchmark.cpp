@@ -237,8 +237,8 @@ int main(int argc, char** argv)
 	test_copy_range(copy_splice_preallocate, src, dst, "copy_splice_preallocate", sizes, fs);
 	test_copy_range(copy_splice_preallocate_fadvise, src, dst, "copy_splice_preallocate_fadvise", sizes, fs);
 	test_copy_range(copy_splice_fadvise, src, dst, "copy_splice_fadvise", sizes, fs);
-	test_write(std::bind(copy_sendfile, src, dst), "copy_sendfile");
-	test_write(std::bind(copy_sendfile_preallocate, src, dst), "copy_sendfile_preallocate");
-	test_write(std::bind(copy_sendfile_preallocate_fadvise, src, dst), "copy_sendfile_preallocate_fadvise");
-	test_write(std::bind(copy_sendfile_fadvise, src, dst), "copy_sendfile_fadvise");
+	test_write(std::bind(copy_sendfile, src, dst), "copy_sendfile", fs);
+	test_write(std::bind(copy_sendfile_preallocate, src, dst), "copy_sendfile_preallocate", fs);
+	test_write(std::bind(copy_sendfile_preallocate_fadvise, src, dst), "copy_sendfile_preallocate_fadvise", fs);
+	test_write(std::bind(copy_sendfile_fadvise, src, dst), "copy_sendfile_fadvise", fs);
 }
