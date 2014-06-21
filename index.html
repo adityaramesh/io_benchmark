@@ -261,19 +261,29 @@ running OS X 10.9, and a Linux server with a PCIe SSD, running Arch Linux with
 kernel version 3.14.4. The Macbook Pro was formatted to HFS+, while the Linux
 server was using ext4 for the partition on which the benchmark was run.</p>
 
+<h3><a name="results_macbook_pro" class="anchor" href="#results_macbook_pro"><span class="octicon octicon-link"></span></a>Results: Macbook Pro</h3>
+
 <p>Below, I have tabulated what seemed to be the best schemes for IO on the
-Macbook Pro and Linux server.</p>
+Macbook Pro.</p>
 
 <table>
 <tr>
-	<th>A</th>
-	<th>B</th>
-	<th>C</th>
+	<th>Task</th>
+	<th>File Size (MB)</th>
+	<th>Method</th>
+	<th>Buffer Size (KB)</th>
 </tr>
 <tr>
-	<td>A</td>
-	<td>B</td>
-	<td>C</td>
+	<td>Reading</td>
+	<td>Less than 256 MB</td>
+	<td><code>read_rdadvise</code></td>
+	<td>56 KB</td>
+</tr>
+<tr>
+	<td>Reading</td>
+	<td>256 MB or greater</td>
+	<td><code>read_rdahead</code></td>
+	<td>4096 KB</td>
 </tr>
 </table>
 
