@@ -37,7 +37,7 @@ let &cpo=s:cpo_save
 unlet s:cpo_save
 set autoindent
 set backspace=indent,eol,start
-set completeopt=menuone
+set completeopt=menu,menuone
 set fileencodings=ucs-bom,utf-8,default,latin1
 set formatoptions=tcqor2
 set helplang=en
@@ -53,6 +53,7 @@ set splitright
 set textwidth=80
 set ttimeoutlen=100
 set visualbell
+set window=53
 let s:so_save = &so | let s:siso_save = &siso | set so=0 siso=0
 let v:this_session=expand("<sfile>:p")
 silent only
@@ -61,45 +62,16 @@ if expand('%') == '' && !&modified && line('$') <= 1 && getline(1) == ''
   let s:wipebuf = bufnr('%')
 endif
 set shortmess=aoO
-badd +0 src/os_x/copy_benchmark.cpp
-badd +0 src/os_x/read_benchmark.cpp
-badd +0 src/os_x/write_benchmark.cpp
-badd +0 include/configuration.hpp
-badd +0 include/copy_common.hpp
-badd +0 include/io_common.hpp
-badd +0 include/read_common.hpp
-badd +0 include/test.hpp
-badd +0 include/write_common.hpp
-badd +0 tools/make_data.rb
-badd +0 tools/test_read.sh
-badd +0 tools/test_write.sh
-badd +0 Rakefile
+badd +33 index.html
 argglobal
 silent! argdel *
-argadd ~/projects/c++/io_benchmark/src/os_x/copy_benchmark.cpp
-argadd ~/projects/c++/io_benchmark/src/os_x/read_benchmark.cpp
-argadd ~/projects/c++/io_benchmark/src/os_x/write_benchmark.cpp
-argadd ~/projects/c++/io_benchmark/include/configuration.hpp
-argadd ~/projects/c++/io_benchmark/include/copy_common.hpp
-argadd ~/projects/c++/io_benchmark/include/io_common.hpp
-argadd ~/projects/c++/io_benchmark/include/read_common.hpp
-argadd ~/projects/c++/io_benchmark/include/test.hpp
-argadd ~/projects/c++/io_benchmark/include/write_common.hpp
-argadd ~/projects/c++/io_benchmark/tools/make_data.rb
-argadd ~/projects/c++/io_benchmark/tools/test_read.sh
-argadd ~/projects/c++/io_benchmark/tools/test_write.sh
-argadd ~/projects/c++/io_benchmark/Rakefile
-edit src/os_x/copy_benchmark.cpp
+argadd ~/projects/c++/io_benchmark/index.html
+edit index.html
 set splitbelow splitright
 set nosplitbelow
 wincmd t
 set winheight=1 winwidth=1
 argglobal
-snoremap <buffer> <silent> 	 :python updateSnips()
-nnoremap <buffer> <silent> 	 :python updateSnips()
-xnoremap <buffer> <silent> 	 :python updateSnips()
-onoremap <buffer> <silent> 	 :python updateSnips()
-nnoremap <buffer> <silent>  
 setlocal keymap=
 setlocal noarabic
 setlocal autoindent
@@ -107,19 +79,19 @@ setlocal nobinary
 setlocal bufhidden=
 setlocal buflisted
 setlocal buftype=
-setlocal cindent
+setlocal nocindent
 setlocal cinkeys=0{,0},0),:,0#,!^F,o,O,e
 setlocal cinoptions=
 setlocal cinwords=if,else,while,do,for,switch
 setlocal colorcolumn=
-setlocal comments=s0:/*,mb:**,ex:*/,b://
-setlocal commentstring=/*%s*/
+setlocal comments=s:<!--,m:\ \ \ \ ,e:-->
+setlocal commentstring=<!--%s-->
 setlocal complete=.,w,b,u,t,i
 set concealcursor=vin
 setlocal concealcursor=vin
 set conceallevel=2
 setlocal conceallevel=2
-setlocal completefunc=ClangComplete
+setlocal completefunc=
 setlocal nocopyindent
 setlocal cryptmethod=
 setlocal nocursorbind
@@ -132,8 +104,8 @@ setlocal nodiff
 setlocal equalprg=
 setlocal errorformat=
 setlocal noexpandtab
-if &filetype != 'cpp'
-setlocal filetype=cpp
+if &filetype != 'html'
+setlocal filetype=html
 endif
 setlocal foldcolumn=0
 setlocal foldenable
@@ -146,7 +118,7 @@ setlocal foldminlines=1
 setlocal foldnestmax=20
 setlocal foldtext=foldtext()
 setlocal formatexpr=
-setlocal formatoptions=2croql
+setlocal formatoptions=tcqor2
 setlocal formatlistpat=^\\s*\\d\\+[\\]:.)}\\t\ ]\\s*
 setlocal grepprg=
 setlocal iminsert=0
@@ -163,13 +135,13 @@ setlocal nolisp
 setlocal lispwords=
 setlocal nolist
 setlocal makeprg=
-setlocal matchpairs=(:),{:},[:]
+setlocal matchpairs=(:),{:},[:],<:>
 setlocal modeline
 setlocal modifiable
 setlocal nrformats=octal,hex
 setlocal nonumber
 setlocal numberwidth=4
-setlocal omnifunc=ClangComplete
+setlocal omnifunc=htmlcomplete#CompleteTags
 setlocal path=
 setlocal nopreserveindent
 setlocal nopreviewwindow
@@ -181,7 +153,7 @@ setlocal rightleftcmd=search
 setlocal noscrollbind
 setlocal shiftwidth=8
 setlocal noshortname
-setlocal smartindent
+setlocal nosmartindent
 setlocal softtabstop=0
 setlocal nospell
 setlocal spellcapcheck=[.?!]\\_[\\])'\"\	\ ]\\+
@@ -191,8 +163,8 @@ setlocal statusline=
 setlocal suffixesadd=
 setlocal swapfile
 setlocal synmaxcol=3000
-if &syntax != 'cpp'
-setlocal syntax=cpp
+if &syntax != 'html'
+setlocal syntax=html
 endif
 setlocal tabstop=8
 setlocal tags=
@@ -205,12 +177,12 @@ setlocal nowinfixwidth
 setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
-let s:l = 1 - ((0 * winheight(0) + 27) / 55)
+let s:l = 93 - ((34 * winheight(0) + 26) / 53)
 if s:l < 1 | let s:l = 1 | endif
 exe s:l
 normal! zt
-1
-normal! 0
+93
+normal! 081|
 tabnext 1
 if exists('s:wipebuf')
   silent exe 'bwipe ' . s:wipebuf
