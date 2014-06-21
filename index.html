@@ -144,6 +144,103 @@ Mozilla blog post warns that on OS X, <code>F_PREALLOCATE</code> need to be
 followed by <code>truncate</code> in order to force the data to be written to
 the file. I implemented both approaches in the benchmarks.</p>
 
+<h3><a name="copy_optimizations" class="anchor" href="#copy_optimizations"><span class="octicon octicon-link"></span></a>Copy Optimizations</h3>
+
+<p>OS X and Linux both allow you to copy files using a simple read-and-write
+loop or <code>mmap</code>. Linux also has the <code>splice</code> and
+<code>sendfile</code> functions, which should perform zero-copy file transfers
+on recent versions of the kernel.</code>
+
+<h1><a name="results" class="anchor" href="#results"><span class="octicon octicon-link"></span></a>Results</h1>
+
+Before I discuss the results for the two systems on which I ran the benchmarks,
+here is the complete list of read methods that I tried on OS X and Linux. All
+buffer-based IO methods were evaluated using each of the following buffer sizes:
+4 KB, 8 KB, 12 KB, 16 KB, 24 KB, 32 KB, 40 KB, 48 KB, 56 KB, 64 KB, 256 KB, 1024
+KB, 4096 KB, 16384 KB, 65536 KB, and 262144 KB.
+
+<pre><code>// OS X:
+read_plain
+read_nocache
+read_rdahead
+read_rdadvise
+read_aio_nocache
+read_aio_rdahead
+read_aio_rdadvise
+read_async_nocache
+read_async_rdahead
+read_async_rdadvise
+read_mmap_plain
+read_mmap_rdahead
+read_mmap_rdadvise
+// Linux:
+read_plain
+read_direct
+read_fadvise
+aio_read_direct
+aio_read_fadvise
+read_async_plain
+read_async_direct
+read_async_fadvise
+read_mmap_plain
+read_mmap_fadvise
+</code></pre>
+
+Here is the list of write methods:
+
+<pre><code>// OS X:
+write_plain
+write_nocache
+write_preallocate
+write_preallocate_truncate
+write_preallocate_truncate_nocache
+async_write_preallocate_truncate_nocache
+write_mmap
+// Linux:
+write_plain
+write_direct
+write_preallocate
+write_truncate
+write_direct_preallocate
+write_direct_truncate
+write_async_plain
+write_async_direct
+write_async_preallocate
+write_async_truncate
+write_async_direct_preallocate
+write_async_direct_truncate
+mmap_preallocate
+mmap_preallocate_direct
+mmap_preallocate
+mmap_truncate_direct
+</code></pre>
+
+Finally, here is a list of the copy methods. Note that I avoided testing many
+combinations of optimizations that I expected to perform poorly based on the
+read and write results.
+
+<pre><code>// OS X:
+copy_plain
+copy_nocache
+copy_rdahead_preallocate
+copy_rdadvise_preallocate
+copy_mmap
+// Linux:
+copy_plain
+copy_direct
+copy_preallocate
+copy_mmap_plain
+copy_mmap_fadvise
+copy_splice
+copy_splice_preallocate
+copy_splice_preallocate_fadvise
+copy_splice_fadvise
+copy_sendfile
+copy_sendfile_preallocate
+copy_sendfile_preallocate_fadvise
+copy_sendfile_fadvise
+</code></pre>
+
 <!--
 <p>Before compiling the benchmarks, you will need to set two environment variables.</p>
 
