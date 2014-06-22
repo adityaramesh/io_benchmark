@@ -160,8 +160,8 @@ the file. I implemented both approaches in the benchmarks.</p>
 
 <p>OS X and Linux both allow you to copy files using a simple read-and-write
 loop or <code>mmap</code>. Linux also has the <code>splice</code> and
-<code>sendfile</code> functions, which should perform zero-copy file transfers
-on recent versions of the kernel.</code>
+<code>sendfile</code> functions, which avoid copying data from kernel buffers to
+userspace buffers.</p>
 
 <h1><a name="results" class="anchor" href="#results"><span class="octicon octicon-link"></span></a>Results</h1>
 
@@ -419,7 +419,7 @@ not have to choose a buffer size.</p>
 
 <h1><a name="conclusion" class="anchor" href="#conclusion"><span class="octicon octicon-link"></span></a>Conclusion</h1>
 
-<p>It is diffcult to draw conclusions solely from the results I presented
+<p>It is difficult to draw conclusions solely from the results I presented
 earlier. The best IO method to use for a given file size will certainly vary
 based on the type of the storage device, file system, kernel version, and so on.
 If more people run the benchmark on different systems and publish their results
