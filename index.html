@@ -280,49 +280,42 @@ href="https://github.com/adityaramesh/io_benchmark/tree/master/results/macbook_p
 	<td>Synchronous</td>
 	<td>&lt; 256 MB</td>
 	<td><code>read_rdadvise</code></td>
-	<td>56 KB</td>
+	<td>4 KB &mdash; 1024 KB</td>
 </tr>
 <tr>
 	<td>Reading</td>
 	<td>Synchronous</td>
 	<td>&ge; 256 MB</td>
 	<td><code>read_rdahead</code></td>
-	<td>4096 KB</td>
+	<td>&ge; 4096 KB</td>
 </tr>
 <tr>
 	<td>Reading</td>
 	<td>Asynchronous</td>
 	<td>&lt; 128 MB</td>
 	<td><code>read_async_rdadvise</code></td>
-	<td>1024 KB</td>
+	<td>Base on workload.</td>
 </tr>
 <tr>
 	<td>Reading</td>
 	<td>Asynchronous</td>
 	<td>&ge; 128 MB</td>
 	<td><code>read_async_rdahead</code></td>
-	<td>4096 KB</td>
+	<td>Base on workload.</td>
 </tr>
 <tr>
 	<td>Writing</td>
 	<td>Synchronous</td>
 	<td>Any</td>
 	<td><code>write_preallocate_truncate_nocache</code></td>
-	<td>4096 KB</td>
+	<td>&ge; 1024 KB</td>
 </tr>
 <tr>
 	<td>Writing</td>
 	<td>Asynchronous</td>
-	<td>&lt; 56 MB</td>
+	<td>Any</td>
 	<td><code>write_async_preallocate_truncate_nocache</code></td>
-	<td>256 KB</td>
-</tr>
-<tr>
-	<td>Writing</td>
-	<td>Asynchronous</td>
-	<td>&ge; 56 MB</td>
-	<td><code>write_async_preallocate_truncate_nocache</code></td>
-	<td>1024 KB</td>
+	<td>Base on workload.</td>
 </tr>
 <tr>
 	<td>Copying</td>
@@ -369,21 +362,21 @@ href="https://github.com/adityaramesh/io_benchmark/tree/master/results/julie">he
 	<td>Synchronous</td>
 	<td>Any</td>
 	<td><code>read_plain</code></td>
-	<td>32 KB</td>
+	<td>4 KB &mdash; 256 KB</td>
 </tr>
 <tr>
 	<td>Reading</td>
 	<td>Asynchronous</td>
 	<td>Any</td>
 	<td><code>read_async_plain</code></td>
-	<td>32 KB</td>
+	<td>Base on workload.</td>
 </tr>
 <tr>
 	<td>Writing</td>
 	<td>Any</td>
 	<td>&lt; 256 MB</td>
 	<td><code>write_preallocate</code></td>
-	<td>4096 KB</td>
+	<td>&ge; 4096 KB</td>
 </tr>
 <tr>
 	<td>Writing</td>
