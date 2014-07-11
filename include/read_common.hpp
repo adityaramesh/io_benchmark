@@ -186,7 +186,7 @@ read_mmap_plain(const char* path)
 {
 	auto fd = safe_open(path, O_RDONLY).get();
 	auto fs = file_size(fd).get();
-	auto p = (uint8_t*)::mmap(nullptr, fs, PROT_READ, MAP_PRIVATE, fd, 0);
+	auto p = (uint8_t*)::mmap(nullptr, fs, PROT_READ, MAP_SHARED, fd, 0);
 	auto count = std::count_if(p, p + fs, [](auto x) { return x == needle; });
 	::munmap(p, fs);
 	return count;

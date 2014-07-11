@@ -114,7 +114,7 @@ read_mmap_fadvise(const char* path)
 	auto fs = file_size(fd).get();
 	fadvise_sequential_read(fd, fs);
 
-	auto p = (uint8_t*)::mmap(nullptr, fs, PROT_READ, MAP_PRIVATE, fd, 0);
+	auto p = (uint8_t*)::mmap(nullptr, fs, PROT_READ, MAP_SHARED, fd, 0);
 	auto count = std::count_if(p, p + fs, [](auto x) { return x == needle; });
 	::munmap(p, fs);
 	return count;

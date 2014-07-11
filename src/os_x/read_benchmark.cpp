@@ -197,7 +197,7 @@ read_mmap_rdahead(const char* path)
 	auto fs = file_size(fd).get();
 	enable_rdahead(fd);
 
-	auto p = (uint8_t*)::mmap(nullptr, fs, PROT_READ, MAP_PRIVATE, fd, 0);
+	auto p = (uint8_t*)::mmap(nullptr, fs, PROT_READ, MAP_SHARED, fd, 0);
 	auto count = std::count_if(p, p + fs, [](auto x) { return x == needle; });
 	::munmap(p, fs);
 	return count;
@@ -210,7 +210,7 @@ read_mmap_rdadvise(const char* path)
 	auto fs = file_size(fd).get();
 	enable_rdadvise(fd, fs);
 
-	auto p = (uint8_t*)::mmap(nullptr, fs, PROT_READ, MAP_PRIVATE, fd, 0);
+	auto p = (uint8_t*)::mmap(nullptr, fs, PROT_READ, MAP_SHARED, fd, 0);
 	auto count = std::count_if(p, p + fs, [](auto x) { return x == needle; });
 	::munmap(p, fs);
 	return count;

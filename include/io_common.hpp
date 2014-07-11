@@ -189,9 +189,7 @@ enable_rdadvise(int fd, off_t fs)
 	}
 }
 
-#endif
-
-#if PLATFORM_KERNEL == PLATFORM_KERNEL_LINUX
+#elif PLATFORM_KERNEL == PLATFORM_KERNEL_LINUX
 
 static inline cc::expected<void>
 purge_cache()

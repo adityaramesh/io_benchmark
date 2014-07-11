@@ -160,7 +160,7 @@ write_mmap_preallocate(const char* path, size_t count)
 	auto fd = safe_open(path, O_RDWR | O_CREAT | O_TRUNC).get();
 	preallocate(fd, count);
 
-	auto p = (uint8_t*)::mmap(nullptr, count, PROT_WRITE, MAP_PRIVATE, fd, 0);
+	auto p = (uint8_t*)::mmap(nullptr, count, PROT_WRITE, MAP_SHARED, fd, 0);
 	if (p == (void*)-1) { throw current_system_error(); }
 	fill_buffer(p, count);
 	::close(fd);
@@ -172,7 +172,7 @@ write_mmap_preallocate_direct(const char* path, size_t count)
 	auto fd = safe_open(path, O_RDWR | O_CREAT | O_TRUNC | O_DIRECT).get();
 	preallocate(fd, count);
 
-	auto p = (uint8_t*)::mmap(nullptr, count, PROT_WRITE, MAP_PRIVATE, fd, 0);
+	auto p = (uint8_t*)::mmap(nullptr, count, PROT_WRITE, MAP_SHARED, fd, 0);
 	if (p == (void*)-1) { throw current_system_error(); }
 	fill_buffer(p, count);
 	::close(fd);
@@ -184,7 +184,7 @@ write_mmap_truncate(const char* path, size_t count)
 	auto fd = safe_open(path, O_RDWR | O_CREAT | O_TRUNC).get();
 	truncate(fd, count);
 
-	auto p = (uint8_t*)::mmap(nullptr, count, PROT_WRITE, MAP_PRIVATE, fd, 0);
+	auto p = (uint8_t*)::mmap(nullptr, count, PROT_WRITE, MAP_SHARED, fd, 0);
 	if (p == (void*)-1) { throw current_system_error(); }
 	fill_buffer(p, count);
 	::close(fd);
@@ -196,7 +196,7 @@ write_mmap_truncate_direct(const char* path, size_t count)
 	auto fd = safe_open(path, O_RDWR | O_CREAT | O_TRUNC | O_DIRECT).get();
 	truncate(fd, count);
 
-	auto p = (uint8_t*)::mmap(nullptr, count, PROT_WRITE, MAP_PRIVATE, fd, 0);
+	auto p = (uint8_t*)::mmap(nullptr, count, PROT_WRITE, MAP_SHARED, fd, 0);
 	if (p == (void*)-1) { throw current_system_error(); }
 	fill_buffer(p, count);
 	::close(fd);

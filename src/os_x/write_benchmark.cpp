@@ -131,7 +131,7 @@ write_mmap(const char* path, size_t count)
 	preallocate(fd, count);
 	truncate(fd, count);
 
-	auto p = (uint8_t*)::mmap(nullptr, count, PROT_WRITE, MAP_PRIVATE, fd, 0);
+	auto p = (uint8_t*)::mmap(nullptr, count, PROT_WRITE, MAP_SHARED, fd, 0);
 	if (p == (void*)-1) { throw current_system_error(); }
 	fill_buffer(p, count);
 	::close(fd);

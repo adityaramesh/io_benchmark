@@ -93,8 +93,8 @@ copy_mmap(const char* src, const char* dst)
 	preallocate(out, fs);
 	truncate(out, fs);
 
-	auto src_buf = (uint8_t*)::mmap(nullptr, fs, PROT_READ, MAP_PRIVATE, in, 0);
-	auto dst_buf = (uint8_t*)::mmap(nullptr, fs, PROT_WRITE, MAP_PRIVATE, out, 0);
+	auto src_buf = (uint8_t*)::mmap(nullptr, fs, PROT_READ, MAP_SHARED, in, 0);
+	auto dst_buf = (uint8_t*)::mmap(nullptr, fs, PROT_WRITE, MAP_SHARED, out, 0);
 	std::copy(src_buf, src_buf + fs, dst_buf);
 }
 

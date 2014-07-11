@@ -60,8 +60,8 @@ copy_mmap_plain(const char* src, const char* dst)
 	auto fs = file_size(in).get();
 	preallocate(out, fs);
 
-	auto src_buf = (uint8_t*)::mmap(nullptr, fs, PROT_READ, MAP_PRIVATE, in, 0);
-	auto dst_buf = (uint8_t*)::mmap(nullptr, fs, PROT_WRITE, MAP_PRIVATE, out, 0);
+	auto src_buf = (uint8_t*)::mmap(nullptr, fs, PROT_READ, MAP_SHARED, in, 0);
+	auto dst_buf = (uint8_t*)::mmap(nullptr, fs, PROT_WRITE, MAP_SHARED, out, 0);
 	std::copy(src_buf, src_buf + fs, dst_buf);
 	::close(in);
 	::close(out);
@@ -76,8 +76,8 @@ copy_mmap_fadvise(const char* src, const char* dst)
 	fadvise_sequential_read(in, fs);
 	preallocate(out, fs);
 
-	auto src_buf = (uint8_t*)::mmap(nullptr, fs, PROT_READ, MAP_PRIVATE, in, 0);
-	auto dst_buf = (uint8_t*)::mmap(nullptr, fs, PROT_WRITE, MAP_PRIVATE, out, 0);
+	auto src_buf = (uint8_t*)::mmap(nullptr, fs, PROT_READ, MAP_SHARED, in, 0);
+	auto dst_buf = (uint8_t*)::mmap(nullptr, fs, PROT_WRITE, MAP_SHARED, out, 0);
 	std::copy(src_buf, src_buf + fs, dst_buf);
 	::close(in);
 	::close(out);
