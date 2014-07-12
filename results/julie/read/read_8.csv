@@ -1,53 +1,108 @@
-Method, Mean (ms), Stddev (ms)
-read_plain 4 Kb, 23.646671, 0.092902
-read_plain 8 Kb, 23.570533, 0.044782
-read_plain 12 Kb, 24.551084, 0.031029
-read_plain 16 Kb, 23.835874, 0.185594
-read_plain 24 Kb, 23.998052, 0.237389
-read_plain 32 Kb, 23.902750, 0.057879
-read_plain 40 Kb, 23.638930, 0.121077
-read_plain 48 Kb, 23.796513, 0.085613
-read_plain 56 Kb, 23.827041, 0.103688
-read_plain 64 Kb, 23.724136, 0.050425
-read_plain 256 Kb, 25.082191, 0.778643
-read_plain 1024 Kb, 29.146861, 2.248789
-read_plain 4096 Kb, 30.759619, 1.990494
-read_fadvise 4 Kb, 24.035279, 0.217877
-read_fadvise 8 Kb, 25.019699, 0.137550
-read_fadvise 12 Kb, 25.161700, 0.242907
-read_fadvise 16 Kb, 25.161562, 0.242442
-read_fadvise 24 Kb, 25.039774, 0.244053
-read_fadvise 32 Kb, 24.502133, 0.206883
-read_fadvise 40 Kb, 23.768622, 0.099387
-read_fadvise 48 Kb, 23.796088, 0.095198
-read_fadvise 56 Kb, 23.726696, 0.143812
-read_fadvise 64 Kb, 23.742752, 0.144405
-read_fadvise 256 Kb, 24.118113, 0.256369
-read_fadvise 1024 Kb, 24.589715, 0.196278
-read_fadvise 4096 Kb, 30.634270, 2.094536
-async_read_plain 4 Kb, 23.773345, 0.431385
-async_read_plain 8 Kb, 23.659457, 0.203155
-async_read_plain 12 Kb, 23.676592, 0.037105
-async_read_plain 16 Kb, 23.668706, 0.168603
-async_read_plain 24 Kb, 23.987402, 0.090720
-async_read_plain 32 Kb, 23.957291, 0.044723
-async_read_plain 40 Kb, 23.592993, 0.030609
-async_read_plain 48 Kb, 23.596858, 0.049707
-async_read_plain 56 Kb, 23.514976, 0.049531
-async_read_plain 64 Kb, 23.694881, 0.152656
-async_read_plain 256 Kb, 23.665577, 0.036126
-async_read_plain 1024 Kb, 24.136704, 0.085123
-async_read_plain 4096 Kb, 26.656322, 0.466915
-async_read_fadvise 4 Kb, 24.125594, 0.226850
-async_read_fadvise 8 Kb, 24.082412, 0.079538
-async_read_fadvise 12 Kb, 24.098376, 0.297119
-async_read_fadvise 16 Kb, 24.089384, 0.140830
-async_read_fadvise 24 Kb, 24.267328, 0.058221
-async_read_fadvise 32 Kb, 24.006705, 0.023498
-async_read_fadvise 40 Kb, 23.724398, 0.227784
-async_read_fadvise 48 Kb, 23.869461, 0.140749
-async_read_fadvise 56 Kb, 23.780182, 0.163480
-async_read_fadvise 64 Kb, 23.646904, 0.065704
-async_read_fadvise 256 Kb, 23.844230, 0.255058
-async_read_fadvise 1024 Kb, 24.176990, 0.308434
-async_read_fadvise 4096 Kb, 26.425814, 0.264679
+File Size, Method, Mean (ms), Stddev (ms)
+8388608, read_plain 4 Kb, 23.953938, 0.358237
+8388608, read_plain 8 Kb, 23.998918, 0.266776
+8388608, read_plain 12 Kb, 24.490556, 0.114601
+8388608, read_plain 16 Kb, 24.452869, 0.051771
+8388608, read_plain 24 Kb, 23.761896, 0.048564
+8388608, read_plain 32 Kb, 23.878782, 0.092935
+8388608, read_plain 40 Kb, 23.839714, 0.094517
+8388608, read_plain 48 Kb, 24.594592, 1.178847
+8388608, read_plain 56 Kb, 23.855844, 0.139781
+8388608, read_plain 64 Kb, 23.951400, 0.100578
+8388608, read_plain 256 Kb, 26.326431, 0.365219
+8388608, read_plain 1024 Kb, 26.722577, 0.351278
+8388608, read_plain 4096 Kb, 29.839341, 2.130845
+8388608, read_direct 4 Kb, 123.898402, 1.897035
+8388608, read_direct 8 Kb, 80.954437, 7.339283
+8388608, read_direct 12 Kb, 60.778446, 3.884634
+8388608, read_direct 16 Kb, 50.759551, 0.232899
+8388608, read_direct 24 Kb, 45.180992, 2.605095
+8388608, read_direct 32 Kb, 41.436388, 2.917420
+8388608, read_direct 40 Kb, 45.051908, 2.493619
+8388608, read_direct 48 Kb, 42.409930, 1.626426
+8388608, read_direct 56 Kb, 42.739956, 0.536149
+8388608, read_direct 64 Kb, 42.953693, 1.224488
+8388608, read_direct 256 Kb, 32.772355, 1.410324
+8388608, read_direct 1024 Kb, 32.268619, 1.053344
+8388608, read_direct 4096 Kb, 30.526075, 2.208437
+8388608, read_fadvise 4 Kb, 23.400900, 0.350220
+8388608, read_fadvise 8 Kb, 23.655141, 0.071046
+8388608, read_fadvise 12 Kb, 23.381879, 0.043616
+8388608, read_fadvise 16 Kb, 23.243273, 0.202775
+8388608, read_fadvise 24 Kb, 23.183583, 0.224320
+8388608, read_fadvise 32 Kb, 23.528457, 0.058778
+8388608, read_fadvise 40 Kb, 23.297463, 0.224762
+8388608, read_fadvise 48 Kb, 23.639135, 0.867415
+8388608, read_fadvise 56 Kb, 23.338447, 0.143645
+8388608, read_fadvise 64 Kb, 23.677740, 0.650623
+8388608, read_fadvise 256 Kb, 24.063633, 0.808229
+8388608, read_fadvise 1024 Kb, 26.229711, 2.100700
+8388608, read_fadvise 4096 Kb, 31.788881, 0.082554
+8388608, aio_read_direct 4 Kb, 235.902462, 40.005806
+8388608, aio_read_direct 8 Kb, 126.460259, 33.753993
+8388608, aio_read_direct 12 Kb, 114.517936, 6.084701
+8388608, aio_read_direct 16 Kb, 84.917111, 7.630082
+8388608, aio_read_direct 24 Kb, 75.432004, 2.255766
+8388608, aio_read_direct 32 Kb, 59.356935, 6.103791
+8388608, aio_read_direct 40 Kb, 53.825180, 2.553340
+8388608, aio_read_direct 48 Kb, 47.377146, 4.209663
+8388608, aio_read_direct 56 Kb, 41.419934, 1.027686
+8388608, aio_read_direct 64 Kb, 41.552108, 1.670892
+8388608, aio_read_direct 256 Kb, 28.292249, 0.720069
+8388608, aio_read_direct 1024 Kb, 25.703814, 0.307736
+8388608, aio_read_direct 4096 Kb, 29.380549, 0.133755
+8388608, aio_read_fadvise 4 Kb, 24.170426, 0.317283
+8388608, aio_read_fadvise 8 Kb, 23.633672, 0.207091
+8388608, aio_read_fadvise 12 Kb, 24.212681, 0.699739
+8388608, aio_read_fadvise 16 Kb, 23.730920, 0.167780
+8388608, aio_read_fadvise 24 Kb, 23.797387, 0.889458
+8388608, aio_read_fadvise 32 Kb, 23.526697, 0.235746
+8388608, aio_read_fadvise 40 Kb, 23.904075, 0.105907
+8388608, aio_read_fadvise 48 Kb, 23.280335, 0.183998
+8388608, aio_read_fadvise 56 Kb, 23.283913, 0.114570
+8388608, aio_read_fadvise 64 Kb, 23.440900, 0.211873
+8388608, aio_read_fadvise 256 Kb, 23.485644, 0.164335
+8388608, aio_read_fadvise 1024 Kb, 24.308682, 0.502297
+8388608, aio_read_fadvise 4096 Kb, 27.160925, 1.174004
+8388608, read_async_plain 4 Kb, 24.567568, 0.926763
+8388608, read_async_plain 8 Kb, 23.939930, 0.244213
+8388608, read_async_plain 12 Kb, 24.605385, 0.150309
+8388608, read_async_plain 16 Kb, 24.152157, 0.484006
+8388608, read_async_plain 24 Kb, 23.865596, 0.050571
+8388608, read_async_plain 32 Kb, 23.988757, 0.016914
+8388608, read_async_plain 40 Kb, 23.801303, 0.087051
+8388608, read_async_plain 48 Kb, 24.009230, 0.339206
+8388608, read_async_plain 56 Kb, 23.974887, 0.320727
+8388608, read_async_plain 64 Kb, 24.064248, 0.322031
+8388608, read_async_plain 256 Kb, 23.835216, 0.067988
+8388608, read_async_plain 1024 Kb, 24.695898, 0.315878
+8388608, read_async_plain 4096 Kb, 26.361546, 0.095592
+8388608, read_async_direct 4 Kb, 122.173943, 3.557142
+8388608, read_async_direct 8 Kb, 69.589479, 1.960586
+8388608, read_async_direct 12 Kb, 51.597370, 0.883164
+8388608, read_async_direct 16 Kb, 46.124794, 2.203319
+8388608, read_async_direct 24 Kb, 44.706017, 8.712334
+8388608, read_async_direct 32 Kb, 34.549246, 1.334169
+8388608, read_async_direct 40 Kb, 33.053931, 0.669606
+8388608, read_async_direct 48 Kb, 30.254137, 0.766589
+8388608, read_async_direct 56 Kb, 34.167717, 3.658802
+8388608, read_async_direct 64 Kb, 35.127399, 0.636728
+8388608, read_async_direct 256 Kb, 25.747667, 0.017569
+8388608, read_async_direct 1024 Kb, 24.280905, 0.137911
+8388608, read_async_direct 4096 Kb, 27.602150, 0.203901
+8388608, read_async_fadvise 4 Kb, 23.403829, 0.066084
+8388608, read_async_fadvise 8 Kb, 23.480511, 0.159217
+8388608, read_async_fadvise 12 Kb, 23.593236, 0.230302
+8388608, read_async_fadvise 16 Kb, 23.624667, 0.207802
+8388608, read_async_fadvise 24 Kb, 23.958183, 0.779185
+8388608, read_async_fadvise 32 Kb, 23.938171, 0.395198
+8388608, read_async_fadvise 40 Kb, 23.259665, 0.092245
+8388608, read_async_fadvise 48 Kb, 23.735849, 0.895512
+8388608, read_async_fadvise 56 Kb, 23.359428, 0.158086
+8388608, read_async_fadvise 64 Kb, 23.585598, 0.752871
+8388608, read_async_fadvise 256 Kb, 23.638734, 0.245512
+8388608, read_async_fadvise 1024 Kb, 24.030706, 0.496508
+8388608, read_async_fadvise 4096 Kb, 26.023087, 0.177320
+8388608, mmap_plain, 24.051181, 0.133543
+8388608, mmap_direct, 24.136514, 0.175650
+8388608, mmap_fadvise, 24.081823, 0.066167

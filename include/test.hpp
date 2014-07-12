@@ -80,7 +80,7 @@ static void test_read_range(
 
 	for (const auto& bs : range) {
 		if (bs * kb <= file_size) {
-			std::snprintf(buf.data(), 64, "%s %d Kb", name, bs);
+			std::snprintf(buf.data(), 64, "%s %d KB", name, bs);
 			test_read(std::bind(func, path, bs * kb), buf.data(), count, file_size);
 		}
 	}
@@ -130,7 +130,7 @@ static void test_write_range(
 
 	for (const auto& bs : range) {
 		if (bs * kb <= count) {
-			std::snprintf(buf.data(), 64, "%s %d Kb", name, bs);
+			std::snprintf(buf.data(), 64, "%s %d KB", name, bs);
 			test_write(std::bind(func, path, bs * kb), buf.data(), count);
 		}
 	}
@@ -151,7 +151,7 @@ static void test_copy_range(
 
 	for (const auto& bs : range) {
 		if (bs * kb <= count) {
-			std::snprintf(buf.data(), 64, "%s %d Kb", name, bs);
+			std::snprintf(buf.data(), 64, "%s %d KB", name, bs);
 			test_write(std::bind(func, src, dst, bs * kb), buf.data(), count);
 		}
 	}

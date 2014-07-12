@@ -1,93 +1,124 @@
-Method, Mean (ms), Stddev (ms)
-write_plain 4 Kb, 2929.490149, 144.864704
-write_plain 8 Kb, 3460.689691, 863.836358
-write_plain 12 Kb, 2772.766519, 172.995695
-write_plain 16 Kb, 3291.477321, 891.501657
-write_plain 24 Kb, 2754.787784, 163.166461
-write_plain 32 Kb, 2798.429485, 119.385025
-write_plain 40 Kb, 2977.832685, 489.595111
-write_plain 48 Kb, 2837.757401, 43.272507
-write_plain 56 Kb, 2820.577488, 153.694365
-write_plain 64 Kb, 3256.101647, 933.885890
-write_plain 256 Kb, 2916.006798, 406.146333
-write_plain 1024 Kb, 2806.989901, 102.379966
-write_plain 4096 Kb, 3191.467717, 913.134905
-write_plain 16384 Kb, 2760.232179, 111.350777
-write_plain 65536 Kb, 4475.755456, 2.815851
-write_direct 4 Kb, 5226.924388, 407.637770
-write_direct 8 Kb, 4087.350044, 277.170604
-write_direct 12 Kb, 3412.518226, 284.096916
-write_direct 16 Kb, 3055.537204, 167.640986
-write_direct 24 Kb, 3183.126319, 109.637323
-write_direct 32 Kb, 2920.663099, 160.656528
-write_direct 40 Kb, 2928.592656, 208.470044
-write_direct 48 Kb, 2955.540719, 196.341148
-write_direct 56 Kb, 2925.855048, 119.440680
-write_direct 64 Kb, 2790.554282, 150.199820
-write_direct 256 Kb, 2598.305723, 18.312852
-write_direct 1024 Kb, 2645.055661, 11.868250
-write_direct 4096 Kb, 2733.016353, 7.023713
-write_direct 16384 Kb, 2736.291087, 11.210448
-write_direct 65536 Kb, 4449.822152, 182.547724
-write_preallocate 4 Kb, 2331.476524, 2.926780
-write_preallocate 8 Kb, 2273.805344, 0.623274
-write_preallocate 12 Kb, 2714.607288, 178.000131
-write_preallocate 16 Kb, 2330.979555, 184.892682
-write_preallocate 24 Kb, 2718.195009, 185.490441
-write_preallocate 32 Kb, 2317.636235, 190.532917
-write_preallocate 40 Kb, 2218.615980, 0.458402
-write_preallocate 48 Kb, 2674.122970, 173.538887
-write_preallocate 56 Kb, 2801.175095, 7.668201
-write_preallocate 64 Kb, 2306.150844, 183.326904
-write_preallocate 256 Kb, 2207.775723, 2.098724
-write_preallocate 1024 Kb, 2192.713408, 0.800291
-write_preallocate 4096 Kb, 2181.912141, 1.274002
-write_preallocate 16384 Kb, 2181.948635, 0.804580
-write_preallocate 65536 Kb, 4333.802823, 235.494832
-write_async_plain 4 Kb, 2924.282960, 12.671092
-write_async_plain 8 Kb, 3305.185133, 874.427776
-write_async_plain 12 Kb, 2853.219412, 8.067672
-write_async_plain 16 Kb, 2835.484010, 6.362618
-write_async_plain 24 Kb, 2785.913927, 65.887459
-write_async_plain 32 Kb, 2820.367895, 6.848887
-write_async_plain 40 Kb, 2822.103744, 12.860127
-write_async_plain 48 Kb, 3260.909861, 876.387711
-write_async_plain 56 Kb, 2832.078577, 12.647706
-write_async_plain 64 Kb, 2734.975356, 177.794509
-write_async_plain 256 Kb, 3254.805868, 880.227774
-write_async_plain 1024 Kb, 2722.123851, 156.661192
-write_async_plain 4096 Kb, 3223.641679, 866.403322
-write_async_plain 16384 Kb, 2681.797800, 18.973663
-write_async_plain 65536 Kb, 3086.470876, 897.674527
-write_async_direct 4 Kb, 2919.120089, 151.237429
-write_async_direct 8 Kb, 2704.156154, 214.564305
-write_async_direct 12 Kb, 2469.436162, 121.239550
-write_async_direct 16 Kb, 2717.532776, 350.883306
-write_async_direct 24 Kb, 2543.861806, 153.397507
-write_async_direct 32 Kb, 2394.601767, 112.796493
-write_async_direct 40 Kb, 2527.552597, 73.999288
-write_async_direct 48 Kb, 2643.006932, 76.210700
-write_async_direct 56 Kb, 2774.675786, 150.182057
-write_async_direct 64 Kb, 2657.233665, 94.938231
-write_async_direct 256 Kb, 2520.385713, 52.762990
-write_async_direct 1024 Kb, 2594.049571, 37.325390
-write_async_direct 4096 Kb, 2703.989200, 102.822495
-write_async_direct 16384 Kb, 2902.452083, 32.806991
-write_async_direct 65536 Kb, 4208.887520, 6.827156
-write_async_preallocate 4 Kb, 2340.285123, 7.857737
-write_async_preallocate 8 Kb, 2291.268208, 1.810888
-write_async_preallocate 12 Kb, 2266.637533, 0.719950
-write_async_preallocate 16 Kb, 2261.490711, 1.090159
-write_async_preallocate 24 Kb, 2293.220190, 84.845979
-write_async_preallocate 32 Kb, 3929.138298, 835.023772
-write_async_preallocate 40 Kb, 2243.067365, 0.386243
-write_async_preallocate 48 Kb, 2241.169615, 0.338606
-write_async_preallocate 56 Kb, 2257.882793, 35.220592
-write_async_preallocate 64 Kb, 2244.713141, 5.025743
-write_async_preallocate 256 Kb, 2235.053224, 0.215801
-write_async_preallocate 1024 Kb, 2227.033354, 0.540835
-write_async_preallocate 4096 Kb, 2219.815180, 1.199026
-write_async_preallocate 16384 Kb, 2208.134894, 1.790685
-write_async_preallocate 65536 Kb, 2168.646250, 1.285150
-write_mmap, 2187.947091, 1.125018
-write_mmap, 2188.143278, 0.478934
+File Size, Method, Mean (ms), Stddev (ms)
+83886080, write_plain 4 Kb, 3155.315677, 456.357611
+83886080, write_plain 8 Kb, 2887.666839, 12.372894
+83886080, write_plain 12 Kb, 2795.544553, 146.812220
+83886080, write_plain 16 Kb, 2830.114397, 41.241271
+83886080, write_plain 24 Kb, 3224.858589, 969.621560
+83886080, write_plain 32 Kb, 2829.361836, 8.310068
+83886080, write_plain 40 Kb, 2780.841090, 76.061039
+83886080, write_plain 48 Kb, 2828.490809, 112.097702
+83886080, write_plain 56 Kb, 2844.904778, 40.619210
+83886080, write_plain 64 Kb, 3256.252189, 930.638641
+83886080, write_plain 256 Kb, 2804.918368, 10.689424
+83886080, write_plain 1024 Kb, 2704.378389, 187.316230
+83886080, write_plain 4096 Kb, 2786.085823, 6.271641
+83886080, write_plain 16384 Kb, 2717.454952, 186.212637
+83886080, write_plain 65536 Kb, 5190.288249, 1476.090335
+83886080, write_direct 4 Kb, 4775.705542, 232.953726
+83886080, write_direct 8 Kb, 3695.518078, 242.888519
+83886080, write_direct 12 Kb, 3209.222532, 158.736136
+83886080, write_direct 16 Kb, 3224.881951, 321.309756
+83886080, write_direct 24 Kb, 3398.765461, 348.709163
+83886080, write_direct 32 Kb, 3189.140952, 201.606183
+83886080, write_direct 40 Kb, 3011.930981, 124.201766
+83886080, write_direct 48 Kb, 3029.866721, 85.258404
+83886080, write_direct 56 Kb, 2920.478088, 42.416467
+83886080, write_direct 64 Kb, 2973.449037, 111.914021
+83886080, write_direct 256 Kb, 2787.428628, 68.913168
+83886080, write_direct 1024 Kb, 2928.684842, 82.422903
+83886080, write_direct 4096 Kb, 2923.321256, 81.528103
+83886080, write_direct 16384 Kb, 2954.929588, 81.885139
+83886080, write_direct 65536 Kb, 4468.285453, 220.945344
+83886080, write_preallocate 4 Kb, 2329.823271, 3.462056
+83886080, write_preallocate 8 Kb, 2272.428427, 0.709585
+83886080, write_preallocate 12 Kb, 2659.516764, 233.421561
+83886080, write_preallocate 16 Kb, 2329.774391, 183.374434
+83886080, write_preallocate 24 Kb, 2676.086823, 169.499588
+83886080, write_preallocate 32 Kb, 2316.950384, 184.456054
+83886080, write_preallocate 40 Kb, 2217.831026, 0.546444
+83886080, write_preallocate 48 Kb, 2682.177917, 368.465073
+83886080, write_preallocate 56 Kb, 3256.307717, 872.958579
+83886080, write_preallocate 64 Kb, 2305.137255, 180.768906
+83886080, write_preallocate 256 Kb, 2207.196941, 0.772902
+83886080, write_preallocate 1024 Kb, 2226.905435, 65.433536
+83886080, write_preallocate 4096 Kb, 2180.875133, 0.429457
+83886080, write_preallocate 16384 Kb, 2180.161015, 0.388044
+83886080, write_preallocate 65536 Kb, 4307.696912, 227.602694
+83886080, write_direct_preallocate 4 Kb, 5067.587944, 166.777709
+83886080, write_direct_preallocate 8 Kb, 3484.670210, 176.705068
+83886080, write_direct_preallocate 12 Kb, 3342.725319, 157.481452
+83886080, write_direct_preallocate 16 Kb, 2935.636826, 90.346562
+83886080, write_direct_preallocate 24 Kb, 3235.213788, 194.073011
+83886080, write_direct_preallocate 32 Kb, 3112.051762, 165.853003
+83886080, write_direct_preallocate 40 Kb, 3007.741670, 101.434216
+83886080, write_direct_preallocate 48 Kb, 3182.536927, 73.251580
+83886080, write_direct_preallocate 56 Kb, 3154.308278, 207.549787
+83886080, write_direct_preallocate 64 Kb, 3145.124917, 76.414511
+83886080, write_direct_preallocate 256 Kb, 2863.657324, 134.302274
+83886080, write_direct_preallocate 1024 Kb, 2946.815522, 152.070987
+83886080, write_direct_preallocate 4096 Kb, 2998.667694, 162.256179
+83886080, write_direct_preallocate 16384 Kb, 3160.017204, 152.881061
+83886080, write_direct_preallocate 65536 Kb, 4535.082259, 242.103166
+83886080, write_async_plain 4 Kb, 2848.843914, 259.821954
+83886080, write_async_plain 8 Kb, 2836.922043, 155.073584
+83886080, write_async_plain 12 Kb, 2826.604673, 103.985267
+83886080, write_async_plain 16 Kb, 2783.020707, 168.504068
+83886080, write_async_plain 24 Kb, 3266.691082, 890.025171
+83886080, write_async_plain 32 Kb, 2797.115298, 145.093717
+83886080, write_async_plain 40 Kb, 3236.196281, 823.465551
+83886080, write_async_plain 48 Kb, 2779.112742, 173.885407
+83886080, write_async_plain 56 Kb, 2817.874391, 106.500594
+83886080, write_async_plain 64 Kb, 3255.400156, 869.694470
+83886080, write_async_plain 256 Kb, 3254.588968, 819.328210
+83886080, write_async_plain 1024 Kb, 2778.058983, 111.229225
+83886080, write_async_plain 4096 Kb, 2914.058175, 400.459728
+83886080, write_async_plain 16384 Kb, 2694.376163, 68.162398
+83886080, write_async_plain 65536 Kb, 2631.826773, 3.094297
+83886080, write_async_direct 4 Kb, 3054.416044, 281.182619
+83886080, write_async_direct 8 Kb, 2668.380040, 224.081706
+83886080, write_async_direct 12 Kb, 2481.327923, 173.833661
+83886080, write_async_direct 16 Kb, 2476.265034, 168.103042
+83886080, write_async_direct 24 Kb, 2363.875408, 51.507170
+83886080, write_async_direct 32 Kb, 2393.549256, 121.013005
+83886080, write_async_direct 40 Kb, 2661.139601, 142.654478
+83886080, write_async_direct 48 Kb, 2706.984210, 271.814419
+83886080, write_async_direct 56 Kb, 2719.677471, 129.699168
+83886080, write_async_direct 64 Kb, 2622.584448, 188.869807
+83886080, write_async_direct 256 Kb, 2598.423314, 121.963876
+83886080, write_async_direct 1024 Kb, 2669.001925, 84.551173
+83886080, write_async_direct 4096 Kb, 2737.632670, 137.851206
+83886080, write_async_direct 16384 Kb, 2925.014643, 86.556355
+83886080, write_async_direct 65536 Kb, 4212.560106, 4.916411
+83886080, write_async_preallocate 4 Kb, 2334.106131, 4.719262
+83886080, write_async_preallocate 8 Kb, 2289.898865, 0.449610
+83886080, write_async_preallocate 12 Kb, 2267.127832, 0.339007
+83886080, write_async_preallocate 16 Kb, 2706.802075, 888.717860
+83886080, write_async_preallocate 24 Kb, 2250.583289, 0.694381
+83886080, write_async_preallocate 32 Kb, 2245.605296, 0.324764
+83886080, write_async_preallocate 40 Kb, 2242.955566, 0.454904
+83886080, write_async_preallocate 48 Kb, 2242.162393, 2.356051
+83886080, write_async_preallocate 56 Kb, 2239.767688, 0.210405
+83886080, write_async_preallocate 64 Kb, 2240.598274, 0.590598
+83886080, write_async_preallocate 256 Kb, 2235.411014, 0.425201
+83886080, write_async_preallocate 1024 Kb, 2226.376153, 0.923295
+83886080, write_async_preallocate 4096 Kb, 2218.948198, 2.026160
+83886080, write_async_preallocate 16384 Kb, 2207.143743, 1.631610
+83886080, write_async_preallocate 65536 Kb, 2168.043514, 1.155529
+83886080, write_async_direct_preallocate 4 Kb, 2551.756540, 54.684245
+83886080, write_async_direct_preallocate 8 Kb, 2627.058983, 149.604176
+83886080, write_async_direct_preallocate 12 Kb, 2449.974064, 109.307781
+83886080, write_async_direct_preallocate 16 Kb, 2306.348417, 1.232230
+83886080, write_async_direct_preallocate 24 Kb, 2358.384624, 122.701474
+83886080, write_async_direct_preallocate 32 Kb, 2614.248456, 246.683283
+83886080, write_async_direct_preallocate 40 Kb, 2984.688741, 221.410110
+83886080, write_async_direct_preallocate 48 Kb, 2533.361507, 61.550624
+83886080, write_async_direct_preallocate 56 Kb, 2363.784077, 83.201539
+83886080, write_async_direct_preallocate 64 Kb, 2476.829838, 128.233487
+83886080, write_async_direct_preallocate 256 Kb, 2541.836556, 87.060776
+83886080, write_async_direct_preallocate 1024 Kb, 2579.452756, 169.338852
+83886080, write_async_direct_preallocate 4096 Kb, 2413.398547, 110.218772
+83886080, write_async_direct_preallocate 16384 Kb, 2171.484118, 6.030594
+83886080, write_async_direct_preallocate 65536 Kb, 3809.902419, 804.608179
+83886080, write_mmap_preallocate, 3561.031902, 1117.205804
+83886080, write_mmap_preallocate_direct, 2187.571104, 1.096632
+83886080, write_mmap_truncate_direct, 2198.788147, 6.984161
