@@ -3,10 +3,6 @@
 ** Author:	Aditya Ramesh
 ** Date:	06/19/2014
 ** Contact:	_@adityaramesh.com
-**
-** - Best results:
-**   - copy_splice_preallocate_fadvise (the buffer size does not really matter)
-**   - copy_sendfile_preallocate_fadvise (no buffer allocation required)
 */
 
 #include <algorithm>
@@ -31,8 +27,8 @@
 static auto
 copy_direct(const char* src, const char* dst, size_t buf_size)
 {
-	auto in = safe_open(src, O_RDONLY | O_DIRECT).get();
-	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC | O_DIRECT).get();
+	auto in = safe_open(src, O_RDONLY | O_NOATIME | O_DIRECT).get();
+	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC | O_NOATIME | O_DIRECT).get();
 	auto buf = allocate_aligned(4096, buf_size);
 	copy_loop(in, out, buf.get(), buf_size);
 	::close(in);
@@ -42,8 +38,8 @@ copy_direct(const char* src, const char* dst, size_t buf_size)
 static auto
 copy_preallocate(const char* src, const char* dst, size_t buf_size)
 {
-	auto in = safe_open(src, O_RDONLY).get();
-	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC).get();
+	auto in = safe_open(src, O_RDONLY | O_NOATIME).get();
+	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC | O_NOATIME).get();
 	auto fs = file_size(in).get();
 	auto buf = allocate_aligned(4096, buf_size);
 	preallocate(out, fs);
@@ -55,8 +51,23 @@ copy_preallocate(const char* src, const char* dst, size_t buf_size)
 static auto
 copy_mmap_plain(const char* src, const char* dst)
 {
-	auto in = safe_open(src, O_RDONLY).get();
-	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC).get();
+	auto in = safe_open(src, O_RDONLY | O_NOATIME).get();
+	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC | O_NOATIME).get();
+	auto fs = file_size(in).get();
+	preallocate(out, fs);
+
+	auto src_buf = (uint8_t*)::mmap(nullptr, fs, PROT_READ, MAP_SHARED, in, 0);
+	auto dst_buf = (uint8_t*)::mmap(nullptr, fs, PROT_WRITE, MAP_SHARED, out, 0);
+	std::copy(src_buf, src_buf + fs, dst_buf);
+	::close(in);
+	::close(out);
+}
+
+static auto
+copy_mmap_nocache(const char* src, const char* dst)
+{
+	auto in = safe_open(src, O_RDONLY | O_NOATIME | O_DIRECT).get();
+	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC | O_NOATIME | O_DIRECT).get();
 	auto fs = file_size(in).get();
 	preallocate(out, fs);
 
@@ -70,8 +81,8 @@ copy_mmap_plain(const char* src, const char* dst)
 static auto
 copy_mmap_fadvise(const char* src, const char* dst)
 {
-	auto in = safe_open(src, O_RDONLY).get();
-	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC).get();
+	auto in = safe_open(src, O_RDONLY | O_NOATIME).get();
+	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC | O_NOATIME).get();
 	auto fs = file_size(in).get();
 	fadvise_sequential_read(in, fs);
 	preallocate(out, fs);
@@ -86,8 +97,8 @@ copy_mmap_fadvise(const char* src, const char* dst)
 static auto
 copy_splice(const char* src, const char* dst, size_t buf_size)
 {
-	auto in = safe_open(src, O_RDONLY).get();
-	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC).get();
+	auto in = safe_open(src, O_RDONLY | O_NOATIME).get();
+	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC | O_NOATIME).get();
 	auto fs = file_size(in).get();
 
 	auto in_pipe = int{};
@@ -101,8 +112,8 @@ copy_splice(const char* src, const char* dst, size_t buf_size)
 static auto
 copy_splice_preallocate(const char* src, const char* dst, size_t buf_size)
 {
-	auto in = safe_open(src, O_RDONLY).get();
-	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC).get();
+	auto in = safe_open(src, O_RDONLY | O_NOATIME).get();
+	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC | O_NOATIME).get();
 	auto fs = file_size(in).get();
 	preallocate(out, fs);
 
@@ -117,8 +128,8 @@ copy_splice_preallocate(const char* src, const char* dst, size_t buf_size)
 static auto
 copy_splice_fadvise(const char* src, const char* dst, size_t buf_size)
 {
-	auto in = safe_open(src, O_RDONLY).get();
-	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC).get();
+	auto in = safe_open(src, O_RDONLY | O_NOATIME).get();
+	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC | O_NOATIME).get();
 	auto fs = file_size(in).get();
 	fadvise_sequential_read(in, fs);
 
@@ -133,8 +144,8 @@ copy_splice_fadvise(const char* src, const char* dst, size_t buf_size)
 static auto
 copy_splice_preallocate_fadvise(const char* src, const char* dst, size_t buf_size)
 {
-	auto in = safe_open(src, O_RDONLY).get();
-	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC).get();
+	auto in = safe_open(src, O_RDONLY | O_NOATIME).get();
+	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC | O_NOATIME).get();
 	auto fs = file_size(in).get();
 	fadvise_sequential_read(in, fs);
 	preallocate(out, fs);
@@ -150,8 +161,8 @@ copy_splice_preallocate_fadvise(const char* src, const char* dst, size_t buf_siz
 static auto
 copy_sendfile(const char* src, const char* dst)
 {
-	auto in = safe_open(src, O_RDONLY).get();
-	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC).get();
+	auto in = safe_open(src, O_RDONLY | O_NOATIME).get();
+	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC | O_NOATIME).get();
 	auto fs = file_size(in).get();
 
 	if (::sendfile(out, in, nullptr, fs) == -1) {
@@ -164,8 +175,8 @@ copy_sendfile(const char* src, const char* dst)
 static auto
 copy_sendfile_preallocate(const char* src, const char* dst)
 {
-	auto in = safe_open(src, O_RDONLY).get();
-	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC).get();
+	auto in = safe_open(src, O_RDONLY | O_NOATIME).get();
+	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC | O_NOATIME).get();
 	auto fs = file_size(in).get();
 	preallocate(out, fs);
 
@@ -179,8 +190,8 @@ copy_sendfile_preallocate(const char* src, const char* dst)
 static auto
 copy_sendfile_fadvise(const char* src, const char* dst)
 {
-	auto in = safe_open(src, O_RDONLY).get();
-	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC).get();
+	auto in = safe_open(src, O_RDONLY | O_NOATIME).get();
+	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC | O_NOATIME).get();
 	auto fs = file_size(in).get();
 	fadvise_sequential_read(in, fs);
 
@@ -194,8 +205,8 @@ copy_sendfile_fadvise(const char* src, const char* dst)
 static auto
 copy_sendfile_preallocate_fadvise(const char* src, const char* dst)
 {
-	auto in = safe_open(src, O_RDONLY).get();
-	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC).get();
+	auto in = safe_open(src, O_RDONLY | O_NOATIME).get();
+	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC | O_NOATIME).get();
 	auto fs = file_size(in).get();
 	preallocate(out, fs);
 	fadvise_sequential_read(in, fs);
@@ -231,6 +242,7 @@ int main(int argc, char** argv)
 	test_copy_range(copy_direct, src, dst, "copy_direct", sizes, fs);
 	test_copy_range(copy_preallocate, src, dst, "copy_preallocate", sizes, fs);
 	test_write(std::bind(copy_mmap_plain, src, dst), "copy_mmap_plain", fs);
+	test_write(std::bind(copy_mmap_nocache, src, dst), "copy_mmap_nocache", fs);
 	test_write(std::bind(copy_mmap_fadvise, src, dst), "copy_mmap_fadvise", fs);
 	test_copy_range(copy_splice, src, dst, "copy_splice", sizes, fs);
 	test_copy_range(copy_splice_preallocate, src, dst, "copy_splice_preallocate", sizes, fs);

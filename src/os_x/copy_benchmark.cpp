@@ -3,8 +3,6 @@
 ** Author:	Aditya Ramesh
 ** Date:	06/03/2014
 ** Contact:	_@adityaramesh.com
-**
-** - Best results: copy_mmap
 */
 
 #include <algorithm>
@@ -78,7 +76,7 @@ copy_rdadvise_preallocate(const char* src, const char* dst, size_t buf_size)
 }
 
 static auto
-copy_mmap(const char* src, const char* dst)
+copy_mmap_nocache_plain(const char* src, const char* dst)
 {
 	auto in = safe_open(src, O_RDONLY).get();
 	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC).get();
@@ -90,6 +88,23 @@ copy_mmap(const char* src, const char* dst)
 	** flags do not help.
 	*/
 	disable_cache(in);
+	preallocate(out, fs);
+	truncate(out, fs);
+
+	auto src_buf = (uint8_t*)::mmap(nullptr, fs, PROT_READ, MAP_SHARED, in, 0);
+	auto dst_buf = (uint8_t*)::mmap(nullptr, fs, PROT_WRITE, MAP_SHARED, out, 0);
+	std::copy(src_buf, src_buf + fs, dst_buf);
+}
+
+static auto
+copy_mmap_nocache_nocache(const char* src, const char* dst)
+{
+	auto in = safe_open(src, O_RDONLY).get();
+	auto out = safe_open(dst, O_RDWR | O_CREAT | O_TRUNC).get();
+	auto fs = file_size(in).get();
+
+	disable_cache(in);
+	disable_cache(out);
 	preallocate(out, fs);
 	truncate(out, fs);
 
@@ -122,5 +137,6 @@ int main(int argc, char** argv)
 	test_copy_range(copy_nocache, src, dst, "copy_nocache", sizes, fs);
 	test_copy_range(copy_rdahead_preallocate, src, dst, "copy_rdahead_preallocate", sizes, fs);
 	test_copy_range(copy_rdadvise_preallocate, src, dst, "copy_rdadvise_preallocate", sizes, fs);
-	test_write(std::bind(copy_mmap, src, dst), "copy_mmap", fs);
+	test_write(std::bind(copy_mmap_nocache_plain, src, dst), "copy_mmap_nocache_plain", fs);
+	test_write(std::bind(copy_mmap_nocache_nocache, src, dst), "copy_mmap_nocache_nocache", fs);
 }

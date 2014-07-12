@@ -3,40 +3,6 @@
 ** Author:	Aditya Ramesh
 ** Date:	06/16/2014
 ** Contact:	_@adityaramesh.com
-**
-** - Scheme for Linux:
-**   - Below 256 MB:
-**     - write_preallocate 4096 KB
-**   - 256 MB or above:
-**     - write_mmap
-**
-** - Best results:
-**   - 8 MB:
-**     - write_preallocate 4096 KB, write_mmap
-**     - write_async_preallocate 4096 KB
-**   - 16 MB:
-**     - write_preallocate 4096 KB
-**     - write_async_direct 40 KB
-**   - 32 MB:
-**     - write_preallocate 4096 KB, 16384 KB
-**     - write_async_preallocate 4096 KB
-**   - 64 MB:
-**     - write_preallocate 16384 KB
-**     - write_async_preallocate 65536 KB
-**   - 80 MB:
-**     - write_preallocate 4096 KB
-**     - write_async_preallocate 65536 KB
-**   - 96 MB:
-**     - write_preallocate 4096 KB
-**     - write_async_direct 8 KB
-**   - 112 MB:
-**     - write_preallocate 4096 KB
-**     - write_async_preallocate 24--64 KB
-**   - 256 MB:
-**     - write_mmap
-**     - write_async_preallocate 262144 KB
-**   - 512 MB:
-**     - write_mmap
 */
 
 #include <algorithm>
@@ -54,7 +20,7 @@
 static void
 write_direct(const char* path, size_t buf_size, size_t count)
 {
-	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC | O_DIRECT).get();
+	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC | O_NOATIME | O_DIRECT).get();
 	auto buf = allocate_aligned(4096, buf_size);
 	write_loop(fd, buf.get(), buf_size, count);
 	::close(fd);
@@ -63,7 +29,7 @@ write_direct(const char* path, size_t buf_size, size_t count)
 static void
 write_preallocate(const char* path, size_t buf_size, size_t count)
 {
-	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC).get();
+	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC | O_NOATIME).get();
 	auto buf = allocate_aligned(4096, buf_size);
 	preallocate(fd, count);
 	write_loop(fd, buf.get(), buf_size, count);
@@ -73,7 +39,7 @@ write_preallocate(const char* path, size_t buf_size, size_t count)
 static void
 write_truncate(const char* path, size_t buf_size, size_t count)
 {
-	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC).get();
+	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC | O_NOATIME).get();
 	auto buf = allocate_aligned(4096, buf_size);
 	preallocate(fd, count);
 	write_loop(fd, buf.get(), buf_size, count);
@@ -83,7 +49,7 @@ write_truncate(const char* path, size_t buf_size, size_t count)
 static void
 write_direct_preallocate(const char* path, size_t buf_size, size_t count)
 {
-	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC | O_DIRECT).get();
+	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC | O_NOATIME | O_DIRECT).get();
 	auto buf = allocate_aligned(4096, buf_size);
 	preallocate(fd, count);
 	write_loop(fd, buf.get(), buf_size, count);
@@ -93,7 +59,7 @@ write_direct_preallocate(const char* path, size_t buf_size, size_t count)
 static void
 write_direct_truncate(const char* path, size_t buf_size, size_t count)
 {
-	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC | O_DIRECT).get();
+	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC | O_NOATIME | O_DIRECT).get();
 	auto buf = allocate_aligned(4096, buf_size);
 	truncate(fd, count);
 	write_loop(fd, buf.get(), buf_size, count);
@@ -103,7 +69,7 @@ write_direct_truncate(const char* path, size_t buf_size, size_t count)
 static void
 write_async_direct(const char* path, size_t buf_size, size_t count)
 {
-	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC | O_DIRECT).get();
+	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC | O_NOATIME | O_DIRECT).get();
 	auto buf1 = allocate_aligned(4096, buf_size);
 	auto buf2 = allocate_aligned(4096, buf_size);
 	async_write_loop(fd, buf1.get(), buf2.get(), buf_size, count);
@@ -113,7 +79,7 @@ write_async_direct(const char* path, size_t buf_size, size_t count)
 static void
 write_async_preallocate(const char* path, size_t buf_size, size_t count)
 {
-	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC).get();
+	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC | O_NOATIME).get();
 	auto buf1 = allocate_aligned(4096, buf_size);
 	auto buf2 = allocate_aligned(4096, buf_size);
 	preallocate(fd, count);
@@ -124,7 +90,7 @@ write_async_preallocate(const char* path, size_t buf_size, size_t count)
 static void
 write_async_truncate(const char* path, size_t buf_size, size_t count)
 {
-	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC).get();
+	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC | O_NOATIME).get();
 	auto buf1 = allocate_aligned(4096, buf_size);
 	auto buf2 = allocate_aligned(4096, buf_size);
 	truncate(fd, count);
@@ -135,7 +101,7 @@ write_async_truncate(const char* path, size_t buf_size, size_t count)
 static void
 write_async_direct_preallocate(const char* path, size_t buf_size, size_t count)
 {
-	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC | O_DIRECT).get();
+	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC | O_NOATIME | O_DIRECT).get();
 	auto buf1 = allocate_aligned(4096, buf_size);
 	auto buf2 = allocate_aligned(4096, buf_size);
 	preallocate(fd, count);
@@ -146,7 +112,7 @@ write_async_direct_preallocate(const char* path, size_t buf_size, size_t count)
 static void
 write_async_direct_truncate(const char* path, size_t buf_size, size_t count)
 {
-	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC | O_DIRECT).get();
+	auto fd = safe_open(path, O_WRONLY | O_CREAT | O_TRUNC | O_NOATIME | O_DIRECT).get();
 	auto buf1 = allocate_aligned(4096, buf_size);
 	auto buf2 = allocate_aligned(4096, buf_size);
 	truncate(fd, count);
@@ -157,7 +123,7 @@ write_async_direct_truncate(const char* path, size_t buf_size, size_t count)
 static void
 write_mmap_preallocate(const char* path, size_t count)
 {
-	auto fd = safe_open(path, O_RDWR | O_CREAT | O_TRUNC).get();
+	auto fd = safe_open(path, O_RDWR | O_CREAT | O_TRUNC | O_NOATIME).get();
 	preallocate(fd, count);
 
 	auto p = (uint8_t*)::mmap(nullptr, count, PROT_WRITE, MAP_SHARED, fd, 0);
@@ -169,7 +135,7 @@ write_mmap_preallocate(const char* path, size_t count)
 static void
 write_mmap_preallocate_direct(const char* path, size_t count)
 {
-	auto fd = safe_open(path, O_RDWR | O_CREAT | O_TRUNC | O_DIRECT).get();
+	auto fd = safe_open(path, O_RDWR | O_CREAT | O_TRUNC | O_NOATIME | O_DIRECT).get();
 	preallocate(fd, count);
 
 	auto p = (uint8_t*)::mmap(nullptr, count, PROT_WRITE, MAP_SHARED, fd, 0);
@@ -181,7 +147,7 @@ write_mmap_preallocate_direct(const char* path, size_t count)
 static void
 write_mmap_truncate(const char* path, size_t count)
 {
-	auto fd = safe_open(path, O_RDWR | O_CREAT | O_TRUNC).get();
+	auto fd = safe_open(path, O_RDWR | O_CREAT | O_TRUNC | O_NOATIME).get();
 	truncate(fd, count);
 
 	auto p = (uint8_t*)::mmap(nullptr, count, PROT_WRITE, MAP_SHARED, fd, 0);
@@ -193,7 +159,7 @@ write_mmap_truncate(const char* path, size_t count)
 static void
 write_mmap_truncate_direct(const char* path, size_t count)
 {
-	auto fd = safe_open(path, O_RDWR | O_CREAT | O_TRUNC | O_DIRECT).get();
+	auto fd = safe_open(path, O_RDWR | O_CREAT | O_TRUNC | O_NOATIME | O_DIRECT).get();
 	truncate(fd, count);
 
 	auto p = (uint8_t*)::mmap(nullptr, count, PROT_WRITE, MAP_SHARED, fd, 0);
@@ -241,8 +207,7 @@ int main(int argc, char** argv)
 	//test_write_range(std::bind(write_async_truncate, _1, _2, count), path, "write_async_truncate", sizes, count);
 	test_write_range(std::bind(write_async_direct_preallocate, _1, _2, count), path, "write_async_direct_preallocate", sizes, count);
 	//test_write_range(std::bind(write_async_direct_truncate, _1, _2, count), path, "write_async_direct_truncate", sizes, count);
-	test_write(std::bind(write_mmap_preallocate, path, count), "write_mmap", count);
-	test_write(std::bind(write_mmap_preallocate_direct, path, count), "write_mmap_direct", count);
-	test_write(std::bind(write_mmap_preallocate, path, count), "write_mmap", count);
-	test_write(std::bind(write_mmap_truncate_direct, path, count), "write_mmap_direct", count);
+	test_write(std::bind(write_mmap_preallocate, path, count), "write_mmap_preallocate", count);
+	test_write(std::bind(write_mmap_preallocate_direct, path, count), "write_mmap_preallocate_direct", count);
+	test_write(std::bind(write_mmap_truncate_direct, path, count), "write_mmap_truncate_direct", count);
 }

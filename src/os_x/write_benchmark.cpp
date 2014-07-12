@@ -3,53 +3,6 @@
 ** Author:	Aditya Ramesh
 ** Date:	06/04/2014
 ** Contact:	_@adityaramesh.com
-**
-** - Scheme for OS X:
-**   - Synchronous:
-**     - 4096 KB
-**   - Asynchronous:
-**     - Below 56 MB:
-**       - 256 KB
-**     - 56 MB and above:
-**       - 1024 KB
-**
-** - Best results for OS X:
-**   - 8 MB:
-**     - 4096 KB
-**     - 256 KB
-**   - 16 MB:
-**     - 4096 KB
-**     - 256 KB
-**   - 24 MB:
-**     - 4096 KB
-**     - 256 KB
-**   - 32 MB:
-**     - 16384 KB
-**     - 256 KB
-**   - 64 MB:
-**     - 4096 KB
-**     - 256 KB, 1024 KB
-**   - 48 MB:
-**     - 16384 KB
-**     - 256 KB, 1024 KB
-**   - 56 MB:
-**     - 4096 KB
-**     - 1024 KB
-**   - 64 MB:
-**     - 16384 KB
-**     - 256 KB, 1024 KB
-**   - 80 MB:
-**     - 16384 KB
-**     - 1024 KB
-**   - 96 MB:
-**     - 907 KB
-**     - 4096 KB, 1024 KB
-**   - 112 MB:
-**     - 4096 KB
-**     - 1024 KB
-**   - 128 MB:
-**     - 4096 KB, 16384 KB
-**     - 1024 KB, 4096 KB
 */
 
 #include <algorithm>

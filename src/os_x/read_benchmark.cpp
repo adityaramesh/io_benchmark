@@ -6,60 +6,6 @@
 **
 ** This is a simple benchmark that compares various methods for sequentially
 ** reading a file.
-**
-** - Scheme for OS X:
-**   - Synchronous:
-**     - Under 256 MB: read_rdadvise 56 KB
-**     - 256 MB and above: read_rdahead 4096 KB
-**   - Asynchronous:
-**     - Under 128 MB: read_rdadvise 1024 KB
-**     - 128 MB and above: read_rdahead 4096 KB
-**
-** - Best results for OS X:
-**   - 8 MB:
-**     - read_rdadvise 32 KB -- 256 KB
-**   - 16 MB:
-**     - read_rdadvise 24 KB -- 56 KB
-**   - 24 MB:
-**     - read_rdadvise 64 KB, 8 KB, 16 KB, 1024 KB
-**   - 32 MB:
-**     - read_async_rdadvise 256 KB
-**     - read_rdadvise 4 KB, 1024 KB
-**   - 40 MB:
-**     - read_rdadvise 48 KB, 24 KB, 1024 KB, 4 KB, 8 KB, 64 KB
-**   - 48 MB:
-**     - read_async_rdadvise 1024 KB
-**     - read_rdadvise 1024 KB, 24 KB, 64 KB, 16 KB, 56 KB
-**   - 56 MB:
-**     - read_async_rdadvise 32 KB
-**     - read_rdadvise 24 KB, 16384 KB, 256 KB
-**   - 64 MB:
-**     - read_async_rdadvise 1024 KB, 
-**     - read_rdadvise 1024 KB, 256 KB, 8 KB, 48 KB
-**   - 80 MB:
-**     - read_async_rdadvise 4096 KB, 1024 KB, 8 KB, 256 KB
-**     - read_rdadvise 8 KB, 24 KB, 32 KB
-**   - 96 MB:
-**     - read_async_rdadvise 4096 KB, 256 KB, 1024 KB, 64 KB
-**     - read_rdadvise 16384 KB, 1024 KB, 16 KB, 48 KB, 4 KB, 32 KB, 56 KB, 64 KB
-**   - 112 MB:
-**     - read_async_rdadvise 40 KB, 256 KB, 4096 KB, nocache 4096 KB
-**     - read_rdadvise 64 KB, 4096 KB
-**   - 128 MB:
-**     - read_async_rdahead 16384 KB, 4096 KB
-**     - read_rdadvise 56 KB, 48 KB, 16 KB, 8 KB
-**   - 160 MB:
-**     - read_async_rdahead 4096 KB, 16384 KB, rdadvise 40 KB, 4096 KB, nocache 16384 KB
-**     - read_rdadvise 56 KB, 4096 KB
-**   - 192 MB:
-**     - read_async_rdadvise 4096 KB, 16384 KB
-**     - read_rdadvise 8 KB, 1024 KB
-**   - 224 MB:
-**     - read_async_rdadvise 16384 KB, rdahead 4096 KB
-**     - read_rdadvise 4096 KB
-**   - 256 MB:
-**     - read_async_rdahead 16384 KB, rdahead 4096 KB
-**     - read_rdahead 4096 KB
 */
 
 #include <algorithm>
@@ -191,6 +137,19 @@ read_async_rdadvise(const char* path, size_t buf_size)
 }
 
 static auto
+read_mmap_nocache(const char* path)
+{
+	auto fd = safe_open(path, O_RDONLY).get();
+	auto fs = file_size(fd).get();
+	disable_cache(fd);
+
+	auto p = (uint8_t*)::mmap(nullptr, fs, PROT_READ, MAP_SHARED, fd, 0);
+	auto count = std::count_if(p, p + fs, [](auto x) { return x == needle; });
+	::munmap(p, fs);
+	return count;
+}
+
+static auto
 read_mmap_rdahead(const char* path)
 {
 	auto fd = safe_open(path, O_RDONLY).get();
@@ -248,7 +207,8 @@ int main(int argc, char** argv)
 	test_read_range(read_async_nocache, path, "read_async_nocache", sizes, fs, count);
 	test_read_range(read_async_rdahead, path, "read_async_rdahead", sizes, fs, count);
 	test_read_range(read_async_rdadvise, path, "read_async_rdadvise", sizes, fs, count);
-	//test_read(std::bind(read_mmap_plain, path), "mmap_plain", count, fs);
-	//test_read(std::bind(read_mmap_rdahead, path), "mmap_rdahead", count, fs);
-	//test_read(std::bind(read_mmap_rdadvise, path), "mmap_rdadvise", count, fs);
+	test_read(std::bind(read_mmap_plain, path), "mmap_plain", count, fs);
+	test_read(std::bind(read_mmap_nocache, path), "mmap_nocache", count, fs);
+	test_read(std::bind(read_mmap_rdahead, path), "mmap_rdahead", count, fs);
+	test_read(std::bind(read_mmap_rdadvise, path), "mmap_rdadvise", count, fs);
 }

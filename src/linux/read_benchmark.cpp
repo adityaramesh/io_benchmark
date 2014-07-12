@@ -6,10 +6,6 @@
 **
 ** This is a simple benchmark that compares various methods for sequentially
 ** reading a file.
-**
-** - Scheme for Linux:
-**   - read_plain 32 KB
-**   - read_async_plain 32 KB
 */
 
 #include <algorithm>
@@ -108,6 +104,17 @@ read_async_fadvise(const char* path, size_t buf_size)
 }
 
 static auto
+read_mmap_direct(const char* path)
+{
+	auto fd = safe_open(path, O_RDONLY | O_NOATIME | O_DIRECT).get();
+	auto fs = file_size(fd).get();
+	auto p = (uint8_t*)::mmap(nullptr, fs, PROT_READ, MAP_SHARED, fd, 0);
+	auto count = std::count_if(p, p + fs, [](auto x) { return x == needle; });
+	::munmap(p, fs);
+	return count;
+}
+
+static auto
 read_mmap_fadvise(const char* path)
 {
 	auto fd = safe_open(path, O_RDONLY | O_NOATIME).get();
@@ -150,5 +157,6 @@ int main(int argc, char** argv)
 	test_read_range(read_async_direct, path, "read_async_direct", sizes, fs, count);
 	test_read_range(read_async_fadvise, path, "read_async_fadvise", sizes, fs, count);
 	test_read(std::bind(read_mmap_plain, path), "mmap_plain", count, fs);
+	test_read(std::bind(read_mmap_direct, path), "mmap_direct", count, fs);
 	test_read(std::bind(read_mmap_fadvise, path), "mmap_fadvise", count, fs);
 }
