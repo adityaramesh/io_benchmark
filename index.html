@@ -176,13 +176,11 @@ read_plain
 read_nocache
 read_rdahead
 read_rdadvise
-read_aio_nocache
-read_aio_rdahead
-read_aio_rdadvise
 read_async_nocache
 read_async_rdahead
 read_async_rdadvise
 read_mmap_plain
+read_mmap_nocache
 read_mmap_rdahead
 read_mmap_rdadvise
 
@@ -190,12 +188,11 @@ read_mmap_rdadvise
 read_plain
 read_direct
 read_fadvise
-aio_read_direct
-aio_read_fadvise
 read_async_plain
 read_async_direct
 read_async_fadvise
 read_mmap_plain
+read_mmap_direct
 read_mmap_fadvise
 </code></pre>
 
@@ -225,7 +222,6 @@ write_async_direct_preallocate
 write_async_direct_truncate
 mmap_preallocate
 mmap_preallocate_direct
-mmap_preallocate
 mmap_truncate_direct
 </code></pre>
 
@@ -238,13 +234,15 @@ copy_plain
 copy_nocache
 copy_rdahead_preallocate
 copy_rdadvise_preallocate
-copy_mmap
+copy_mmap_nocache_plain
+copy_mmap_nocache_nocache
 
 // Linux:
 copy_plain
 copy_direct
 copy_preallocate
 copy_mmap_plain
+copy_mmap_nocache
 copy_mmap_fadvise
 copy_splice
 copy_splice_preallocate
@@ -359,31 +357,17 @@ href="https://github.com/adityaramesh/io_benchmark/tree/master/results/julie">he
 </tr>
 <tr>
 	<td>Reading</td>
-	<td>Synchronous</td>
 	<td>Any</td>
-	<td><code>read_plain</code></td>
-	<td>4 KB &mdash; 256 KB</td>
-</tr>
-<tr>
-	<td>Reading</td>
-	<td>Asynchronous</td>
 	<td>Any</td>
-	<td><code>read_async_plain</code></td>
-	<td>Base on workload.</td>
+	<td><code>read_fadvise</code></td>
+	<td>40 KB &mdash; 256 KB</td>
 </tr>
 <tr>
 	<td>Writing</td>
 	<td>Any</td>
-	<td>&lt; 256 MB</td>
+	<td>Any</td>
 	<td><code>write_preallocate</code></td>
 	<td>&ge; 4096 KB</td>
-</tr>
-<tr>
-	<td>Writing</td>
-	<td>Any</td>
-	<td>&ge; 256 MB</td>
-	<td><code>write_mmap</code></td>
-	<td>N/A</td>
 </tr>
 <tr>
 	<td>Copying</td>
@@ -394,21 +378,14 @@ href="https://github.com/adityaramesh/io_benchmark/tree/master/results/julie">he
 </tr>
 </table>
 
-<p>The results for reading on the Linux server were a lot less decisive than
-they were on Macbook Pro. Using <code>FADV_SEQUENTIAL</code> sometimes resulted
-in a speedup, and other times resulted in performance degradations. There was no
-clear tradeoff point in terms of the file size. However, <code>read_plain</code>
-(which uses <code>pread</code> in a loop) generally performed well with a buffer
-size of 32 KB.</p>
-
-<p>The implementation of <code>mmap</code> on Linux seems to be much more
-competitive than the one on OS X. For reading and writing, <code>mmap</code>
-generally resulted in poor performance on the Macbook Pro. On the Linux server,
-<code>mmap</code> is the preferred method for writing more 256 MB or more at a
-time. Finally, <code>splice</code> and <code>sendfile</code> were the clear
-winners for copying files. I preferred <code>sendfile</code> to
-<code>splice</code>, since the usage is much simpler, and the programmer does
-not have to choose a buffer size.</p>
+<p>The results for Linux server are much simpler to explain than those for the
+Macbook Pro. The methods for each IO task tabulated above were the fastest
+across all file sizes. Interestingly, the implementation of <code>mmap</code> on
+Linux is much more competitive than the one OS X. Although <code>mmap</code> was
+never the fastest IO method, it was always only slightly slower. Finally,
+<code>splice</code> and <code>sendfile</code> were the clear winners for copying
+files. I preferred <code>sendfile</code> to <code>splice</code>, since the usage
+is much simpler, and the programmer does not have to choose a buffer size.</p>
 
 <h1><a name="conclusion" class="anchor" href="#conclusion"><span class="octicon octicon-link"></span></a>Conclusion</h1>
 
