@@ -303,17 +303,10 @@ href="https://github.com/adityaramesh/io_benchmark/tree/master/results/macbook_p
 </tr>
 <tr>
 	<td>Writing</td>
-	<td>Synchronous</td>
+	<td>Any</td>
 	<td>Any</td>
 	<td><code>write_preallocate_truncate_nocache</code></td>
 	<td>&ge; 1024 KB</td>
-</tr>
-<tr>
-	<td>Writing</td>
-	<td>Asynchronous</td>
-	<td>Any</td>
-	<td><code>write_async_preallocate_truncate_nocache</code></td>
-	<td>Base on workload.</td>
 </tr>
 <tr>
 	<td>Copying</td>
@@ -327,7 +320,7 @@ href="https://github.com/adityaramesh/io_benchmark/tree/master/results/macbook_p
 <p>For reading, there is a point after which it makes sense to stop using
 <code>F_RDADVISE</code> and instead use <code>F_RDAHEAD</code>. It would be nice
 to find out where this point occurs without actually running the benchmark on
-the machine. For writing, the method mentioned performed the fastest for all
+the machine. For writing, the methods tabulated above performed the fastest for all
 file sizes tested. For any given file size, the best asynchronous IO method was
 generally faster than the best synchronous IO method. This shows that despite
 the modest synchronization overhead, it is still worth it to exploit parallelism
@@ -338,7 +331,7 @@ difference in performance. It may be worth the time to try out a range of buffer
 sizes if you know in advantage that your program will only run on a particular
 platform. The difference is much more dramatic when <code>F_NOCACHE</code> is
 used for reading, but this approach did not yield good results anyway. For
-copying, the fastest method in all cases was a simple method that used
+copying, the fastest method in all cases was a simple one that used
 <code>mmap</code> twice and <code>std::copy</code> to transfer the data.</p>
 
 <h3><a name="results_linux_server" class="anchor" href="#results_linux_server"><span class="octicon octicon-link"></span></a>Results: Linux Server</h3>
@@ -378,27 +371,40 @@ href="https://github.com/adityaramesh/io_benchmark/tree/master/results/julie">he
 </tr>
 </table>
 
-<p>The results for Linux server are much simpler to explain than those for the
-Macbook Pro. The methods for each IO task tabulated above were the fastest
-across all file sizes. Interestingly, the implementation of <code>mmap</code> on
-Linux is much more competitive than the one OS X. Although <code>mmap</code> was
-never the fastest IO method, it was always only slightly slower. Finally,
-<code>splice</code> and <code>sendfile</code> were the clear winners for copying
-files. I preferred <code>sendfile</code> to <code>splice</code>, since the usage
-is much simpler, and the programmer does not have to choose a buffer size.</p>
+<p> The fastest methods for reading and writing on Linux used the same kinds of
+optimizations that were used by the fastest methods on OS X. The methods
+tabulated above were also the fastest across all file sizes. This is
+encouraging, since it suggests that providing read advice and preallocating
+space before writes are effective strategies on both kernels. One issue is that
+the <code>fallocate</code> function is not supported on all filesystems (but it
+is supported by XFS, ext4, Btrfs, and tmpfs). One possible fallback is to use
+<code>ftruncate</code> in the event that <code>fallocate</code> is
+unsupported.</p>
+
+<p>Interestingly, the implementation of <code>mmap</code> on Linux is much more
+competitive than the one on OS X. Although <code>mmap</code> was never the
+fastest IO method, it was always slightly slower. Finally, <code>splice</code>
+and <code>sendfile</code> were the clear winners for copying files. I preferred
+<code>sendfile</code> to <code>splice</code>, since the usage is much simpler,
+and the programmer does not have to choose a buffer size.</p>
 
 <h1><a name="conclusion" class="anchor" href="#conclusion"><span class="octicon octicon-link"></span></a>Conclusion</h1>
 
-<p>It is difficult to draw conclusions solely from the results I presented
-earlier. The best IO method to use for a given file size will certainly vary
-based on the type of the storage device, file system, kernel version, and so on.
-If more people run the benchmark on different systems and publish their results
-using <a
+<p>Giving the kernel IO advice and preallocating space before writing were
+effective strategies on both platforms. On each platform, there was also a clear
+choice for the best method to use for copying files. One would expect the same
+methods to work well across platforms with different file systems, for the same
+reasons that these methods were effective on the platforms on which I ran the
+benchmarks. Benchmark results on other systems to back up this speculation would
+be useful.</p>
+
+<p>One problem is that the best buffer size to use for each IO task will likely
+vary based on the type of storage device, file system, and so on. If more people
+run the benchmark on different systems and publish their results using <a
 href="https://docs.google.com/a/adityaramesh.com/forms/d/1h2ogikCYrW3oCFjMJhWSoyZQ0NeyP3759JRquyjh-YM/viewform">the
-survey</a> I put up, then perhaps some general trends will emerge. Until then, I
-hope that these benchmarks will serve as a useful reference for those looking to
-optimize IO performance on OS X and Linux. Thanks for reading, and feel free to
-send me your comments and suggestions!</p>
+survey,</a> then perhaps more definitive recommendations can be made in this
+regard. Until this happens, my recommendation is to iterate across a range of
+buffer sizes in order to determine which ones work best.</p>
 
 </section>
 </div>
